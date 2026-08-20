@@ -56,7 +56,7 @@ def build_release():
     xml_content = f"""<?xml version='1.0' encoding='UTF-8'?>
 <gupdate xmlns='http://www.google.com/update2/response' protocol='2.0'>
   <app appid='zumpeypinterestbatchdownloader001'>
-    <updatecheck codebase='https://raw.githubusercontent.com/zumpey/zumpey-pinterest-downloader/main/dist/zumpey.crx' version='{version}' />
+    <updatecheck codebase='https://raw.githubusercontent.com/shaharyarkp2/zumpey-pinterest-downloader/main/dist/zumpey.zip' version='{version}' />
   </app>
 </gupdate>
 """

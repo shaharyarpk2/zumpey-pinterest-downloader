@@ -17,7 +17,7 @@
 
 ## 📦 How to Install (For Users)
 
-1. Download the latest **`zumpey.zip`** from the [Releases](https://github.com/zumpey/zumpey-pinterest-downloader/releases) section.
+1. Download the latest **`zumpey.zip`** from the [Releases](https://github.com/shaharyarkp2/zumpey-pinterest-downloader/releases) section.
 2. Unzip the folder to your computer (e.g. `Desktop/zumpey-extension`).
 3. Open Google Chrome and go to `chrome://extensions/`.
 4. Turn ON **"Developer mode"** in the top right corner.

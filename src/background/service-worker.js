@@ -614,7 +614,7 @@ async function handleCheckUpdate() {
 
   // Fetch latest version from GitHub API
   try {
-    const res = await fetch('https://api.github.com/repos/zumpey/zumpey-pinterest-downloader/releases/latest', {
+    const res = await fetch('https://api.github.com/repos/shaharyarkp2/zumpey-pinterest-downloader/releases/latest', {
       headers: { 'Accept': 'application/vnd.github.v3+json' }
     });
     if (res.ok) {
