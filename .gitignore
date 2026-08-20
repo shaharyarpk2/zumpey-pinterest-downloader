@@ -1,0 +1,12 @@
+# System / Editor files
+.DS_Store
+Thumbs.db
+*.log
+.vscode/
+.idea/
+
+# Download exports
+PinFlow_Exports/
+Zumpey_Exports/
+*.crx
+dist/

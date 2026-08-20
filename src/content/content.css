@@ -1,0 +1,582 @@
+/**
+ * PinFlow Pro: Injected UI Stylesheet
+ * Glassmorphism, Floating Control Bar, Badges, Hover Overlays & Toast HUD
+ */
+
+/* Root CSS Variables */
+:root {
+  --pinflow-red: #E60023;
+  --pinflow-red-hover: #ad081b;
+  --pinflow-indigo: #6366f1;
+  --pinflow-indigo-hover: #4f46e5;
+  --pinflow-bg-glass: rgba(18, 18, 24, 0.85);
+  --pinflow-bg-card: rgba(30, 30, 42, 0.9);
+  --pinflow-border: rgba(255, 255, 255, 0.12);
+  --pinflow-border-active: rgba(230, 0, 35, 0.8);
+  --pinflow-text-main: #f8fafc;
+  --pinflow-text-muted: #94a3b8;
+  --pinflow-shadow: 0 12px 32px rgba(0, 0, 0, 0.45);
+  --pinflow-glow: 0 0 20px rgba(230, 0, 35, 0.35);
+  --pinflow-radius: 12px;
+  --pinflow-font: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+}
+
+/* ==========================================================================
+   Pin Card Overlay Controls
+   ========================================================================== */
+
+/* Pin card container overlay styles */
+.pinflow-pin-container {
+  /* Do not override position or transform so Pinterest Masonry Grid layout stays intact */
+}
+
+.pinflow-pin-container.pinflow-selected {
+  outline: 3px solid var(--pinflow-red) !important;
+  outline-offset: -2px !important;
+  border-radius: 16px !important;
+  box-shadow: var(--pinflow-glow) !important;
+}
+
+/* Top-Left Order Badge */
+.pinflow-badge-wrapper {
+  position: absolute;
+  top: 10px;
+  left: 10px;
+  z-index: 999;
+  cursor: pointer;
+  user-select: none;
+}
+
+.pinflow-order-badge {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 28px;
+  height: 28px;
+  padding: 0 7px;
+  background: var(--pinflow-bg-glass);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+  border: 1.5px solid var(--pinflow-border);
+  border-radius: 20px;
+  color: var(--pinflow-text-main);
+  font-family: var(--pinflow-font);
+  font-size: 12px;
+  font-weight: 700;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+  transition: all 0.2s ease;
+}
+
+.pinflow-order-badge:hover {
+  background: rgba(45, 45, 60, 0.95);
+  border-color: rgba(255, 255, 255, 0.3);
+  transform: scale(1.08);
+}
+
+.pinflow-order-badge.active {
+  background: var(--pinflow-red);
+  border-color: #ff4d67;
+  color: #ffffff;
+  box-shadow: 0 0 12px rgba(230, 0, 35, 0.6);
+}
+
+/* Top-Right Action Buttons */
+.pinflow-pin-actions {
+  position: absolute;
+  top: 10px;
+  right: 10px;
+  display: flex;
+  gap: 6px;
+  z-index: 999;
+  opacity: 0;
+  pointer-events: none;
+  transform: translateY(-4px);
+  transition: opacity 0.2s ease, transform 0.2s ease;
+}
+
+.pinflow-pin-container:hover .pinflow-pin-actions {
+  opacity: 1;
+  pointer-events: auto;
+  transform: translateY(0);
+}
+
+.pinflow-action-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 32px;
+  height: 32px;
+  background: var(--pinflow-bg-glass);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+  border: 1px solid var(--pinflow-border);
+  border-radius: 50%;
+  color: var(--pinflow-text-main);
+  cursor: pointer;
+  transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.25);
+  outline: none;
+  padding: 0;
+}
+
+.pinflow-action-btn:hover {
+  background: var(--pinflow-red);
+  border-color: #ff4d67;
+  color: #ffffff;
+  transform: scale(1.12);
+  box-shadow: 0 0 12px rgba(230, 0, 35, 0.5);
+}
+
+.pinflow-action-btn svg {
+  width: 15px;
+  height: 15px;
+  fill: currentColor;
+}
+
+/* Tooltip on Pin Buttons */
+.pinflow-action-btn[data-tooltip] {
+  position: relative;
+}
+
+.pinflow-action-btn[data-tooltip]::before {
+  content: attr(data-tooltip);
+  position: absolute;
+  bottom: -28px;
+  left: 50%;
+  transform: translateX(-50%);
+  padding: 4px 8px;
+  background: #0f172a;
+  color: #ffffff;
+  font-family: var(--pinflow-font);
+  font-size: 11px;
+  font-weight: 500;
+  border-radius: 6px;
+  white-space: nowrap;
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.15s ease, transform 0.15s ease;
+  z-index: 10000;
+  border: 1px solid rgba(255, 255, 255, 0.15);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+}
+
+.pinflow-action-btn[data-tooltip]:hover::before {
+  opacity: 1;
+  transform: translateX(-50%) translateY(2px);
+}
+
+/* ==========================================================================
+   Floating Control Bar (Glassmorphism HUD)
+   ========================================================================== */
+
+#pinflow-floating-bar {
+  position: fixed;
+  bottom: 24px;
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 2147483640;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 8px 14px;
+  background: var(--pinflow-bg-glass);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  border: 1px solid var(--pinflow-border);
+  border-radius: 40px;
+  box-shadow: var(--pinflow-shadow), 0 0 0 1px rgba(255, 255, 255, 0.05);
+  font-family: var(--pinflow-font);
+  color: var(--pinflow-text-main);
+  user-select: none;
+  transition: transform 0.3s cubic-bezier(0.16, 1, 0.3, 1), opacity 0.3s ease;
+}
+
+#pinflow-floating-bar.minimized {
+  transform: translateX(-50%) translateY(75%);
+  opacity: 0.85;
+}
+
+#pinflow-floating-bar.minimized:hover {
+  transform: translateX(-50%) translateY(0);
+  opacity: 1;
+}
+
+/* Brand Section */
+.pinflow-dock-brand {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding-right: 8px;
+  border-right: 1px solid var(--pinflow-border);
+}
+
+.pinflow-brand-logo {
+  width: 26px;
+  height: 26px;
+  border-radius: 8px;
+  background: var(--pinflow-red);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: white;
+  font-weight: 800;
+  font-size: 13px;
+  box-shadow: 0 0 10px rgba(230, 0, 35, 0.5);
+}
+
+.pinflow-brand-name {
+  font-size: 13px;
+  font-weight: 700;
+  letter-spacing: -0.2px;
+  background: linear-gradient(135deg, #ffffff 0%, #cbd5e1 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+}
+
+/* Counter Pill */
+.pinflow-count-pill {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 5px 10px;
+  background: rgba(255, 255, 255, 0.08);
+  border: 1px solid var(--pinflow-border);
+  border-radius: 20px;
+  font-size: 12px;
+  font-weight: 600;
+  color: #e2e8f0;
+}
+
+.pinflow-count-pill.active {
+  background: rgba(230, 0, 35, 0.15);
+  border-color: rgba(230, 0, 35, 0.4);
+  color: #ff4d67;
+}
+
+.pinflow-count-number {
+  font-weight: 800;
+  font-size: 13px;
+}
+
+/* Buttons inside dock */
+.pinflow-dock-btn {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 7px 12px;
+  background: rgba(255, 255, 255, 0.06);
+  border: 1px solid var(--pinflow-border);
+  border-radius: 20px;
+  color: var(--pinflow-text-main);
+  font-family: var(--pinflow-font);
+  font-size: 12px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+  outline: none;
+  white-space: nowrap;
+}
+
+.pinflow-dock-btn:hover {
+  background: rgba(255, 255, 255, 0.12);
+  border-color: rgba(255, 255, 255, 0.25);
+  transform: translateY(-1px);
+}
+
+.pinflow-dock-btn svg {
+  width: 14px;
+  height: 14px;
+  fill: currentColor;
+}
+
+/* Primary Batch Download Button */
+.pinflow-dock-btn-primary {
+  background: linear-gradient(135deg, #E60023 0%, #ad081b 100%);
+  border-color: #ff334b;
+  color: #ffffff;
+  padding: 7px 16px;
+  box-shadow: 0 4px 14px rgba(230, 0, 35, 0.4);
+}
+
+.pinflow-dock-btn-primary:hover {
+  background: linear-gradient(135deg, #ff1a38 0%, #c40a20 100%);
+  box-shadow: 0 6px 18px rgba(230, 0, 35, 0.6);
+  transform: translateY(-2px);
+}
+
+.pinflow-dock-btn-primary:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+  transform: none;
+  box-shadow: none;
+}
+
+/* Secondary Button Accents */
+.pinflow-dock-btn-accent {
+  background: rgba(99, 102, 241, 0.15);
+  border-color: rgba(99, 102, 241, 0.4);
+  color: #a5b4fc;
+}
+
+.pinflow-dock-btn-accent:hover {
+  background: rgba(99, 102, 241, 0.28);
+  border-color: #818cf8;
+  color: #ffffff;
+}
+
+/* Minimize & Collapse Button */
+.pinflow-dock-icon-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 28px;
+  height: 28px;
+  background: transparent;
+  border: 1px solid transparent;
+  border-radius: 50%;
+  color: var(--pinflow-text-muted);
+  cursor: pointer;
+  transition: all 0.2s ease;
+  padding: 0;
+}
+
+.pinflow-dock-icon-btn:hover {
+  background: rgba(255, 255, 255, 0.1);
+  color: var(--pinflow-text-main);
+  border-color: var(--pinflow-border);
+}
+
+.pinflow-dock-icon-btn svg {
+  width: 14px;
+  height: 14px;
+  fill: currentColor;
+}
+
+/* Progress bar strip inside dock */
+.pinflow-dock-progress {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 3px;
+  background: rgba(255, 255, 255, 0.1);
+  border-radius: 40px 40px 0 0;
+  overflow: hidden;
+  display: none;
+}
+
+.pinflow-dock-progress-bar {
+  height: 100%;
+  width: 0%;
+  background: linear-gradient(90deg, #E60023, #6366f1);
+  transition: width 0.2s ease;
+}
+
+/* ==========================================================================
+   Toast Notification System (In-Page HUD)
+   ========================================================================== */
+
+#pinflow-toast-container {
+  position: fixed;
+  top: 24px;
+  right: 24px;
+  z-index: 2147483647;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  pointer-events: none;
+}
+
+.pinflow-toast {
+  pointer-events: auto;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 12px 18px;
+  background: var(--pinflow-bg-glass);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  border: 1px solid var(--pinflow-border);
+  border-radius: var(--pinflow-radius);
+  color: var(--pinflow-text-main);
+  font-family: var(--pinflow-font);
+  font-size: 13px;
+  box-shadow: var(--pinflow-shadow);
+  transform: translateX(100%);
+  opacity: 0;
+  transition: all 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+  max-width: 360px;
+}
+
+.pinflow-toast.show {
+  transform: translateX(0);
+  opacity: 1;
+}
+
+.pinflow-toast-icon {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.1);
+  flex-shrink: 0;
+}
+
+.pinflow-toast-icon.success {
+  background: rgba(34, 197, 94, 0.2);
+  color: #4ade80;
+}
+
+.pinflow-toast-icon.error {
+  background: rgba(239, 68, 68, 0.2);
+  color: #f87171;
+}
+
+.pinflow-toast-icon.info {
+  background: rgba(99, 102, 241, 0.2);
+  color: #818cf8;
+}
+
+.pinflow-toast-icon svg {
+  width: 16px;
+  height: 16px;
+  fill: currentColor;
+}
+
+.pinflow-toast-message {
+  flex-grow: 1;
+  line-height: 1.4;
+  font-weight: 500;
+}
+
+/* ==========================================================================
+   Auto-Harvest HUD (Full Account / Board Continuous Scraper)
+   ========================================================================== */
+
+#zumpey-harvest-hud {
+  position: fixed;
+  top: 20px;
+  left: 50%;
+  transform: translateX(-50%) translateY(-20px);
+  z-index: 2147483646;
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  padding: 12px 20px;
+  background: var(--pinflow-bg-glass);
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+  border: 1.5px solid rgba(230, 0, 35, 0.4);
+  border-radius: 40px;
+  box-shadow: 0 12px 40px rgba(0, 0, 0, 0.6), 0 0 24px rgba(230, 0, 35, 0.35);
+  font-family: var(--pinflow-font);
+  color: var(--pinflow-text-main);
+  opacity: 0;
+  pointer-events: none;
+  transition: all 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+#zumpey-harvest-hud.active {
+  transform: translateX(-50%) translateY(0);
+  opacity: 1;
+  pointer-events: auto;
+}
+
+.harvest-header {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.harvest-spinner {
+  width: 22px;
+  height: 22px;
+  border: 3px solid rgba(255, 255, 255, 0.15);
+  border-top-color: var(--pinflow-red);
+  border-radius: 50%;
+  animation: spin 0.8s linear infinite;
+}
+
+@keyframes spin {
+  to { transform: rotate(360deg); }
+}
+
+.harvest-info {
+  display: flex;
+  flex-direction: column;
+}
+
+.harvest-title {
+  font-size: 13px;
+  font-weight: 700;
+  letter-spacing: -0.2px;
+}
+
+.harvest-stats {
+  font-size: 11px;
+  color: var(--pinflow-text-muted);
+}
+
+.harvest-stats strong {
+  color: #ff4d67;
+}
+
+.harvest-actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  border-left: 1px solid var(--pinflow-border);
+  padding-left: 14px;
+}
+
+.harvest-btn {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 14px;
+  border-radius: 20px;
+  font-size: 12px;
+  font-weight: 700;
+  cursor: pointer;
+  outline: none;
+  transition: all 0.2s ease;
+}
+
+.harvest-btn.primary {
+  background: linear-gradient(135deg, #E60023 0%, #ad081b 100%);
+  border: 1px solid #ff4d67;
+  color: #fff;
+  box-shadow: 0 4px 12px rgba(230, 0, 35, 0.4);
+}
+
+.harvest-btn.primary:hover {
+  background: linear-gradient(135deg, #ff1a38 0%, #c40a20 100%);
+  transform: scale(1.04);
+}
+
+.harvest-btn.secondary {
+  background: rgba(255, 255, 255, 0.08);
+  border: 1px solid var(--pinflow-border);
+  color: var(--pinflow-text-muted);
+}
+
+.harvest-btn.secondary:hover {
+  background: rgba(255, 255, 255, 0.15);
+  color: #fff;
+}
+
+/* Context Action Button in Floating Dock */
+.pinflow-dock-btn-harvest {
+  background: linear-gradient(135deg, #6366f1 0%, #4338ca 100%);
+  border-color: #818cf8;
+  color: #ffffff;
+  box-shadow: 0 4px 12px rgba(99, 102, 241, 0.35);
+}
+
+.pinflow-dock-btn-harvest:hover {
+  background: linear-gradient(135deg, #4f46e5 0%, #3730a3 100%);
+  box-shadow: 0 6px 16px rgba(99, 102, 241, 0.5);
+  transform: translateY(-2px);
+}

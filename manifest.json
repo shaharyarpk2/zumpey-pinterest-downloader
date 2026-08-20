@@ -1,0 +1,130 @@
+{
+  "manifest_version": 3,
+  "name": "Zumpey.com - Pinterest Batch Extractor & Downloader",
+  "version": "1.0.0",
+  "description": "Extract Full HD original images, clean outbound destination links, batch select sequentially, and export to Excel/CSV with Zumpey.com.",
+  "author": "Zumpey.com",
+  "update_url": "https://raw.githubusercontent.com/zumpey/zumpey-pinterest-downloader/main/updates.xml",
+  "permissions": [
+    "downloads",
+    "storage",
+    "activeTab",
+    "scripting",
+    "unlimitedStorage"
+  ],
+  "host_permissions": [
+    "*://*.pinterest.com/*",
+    "*://*.pinimg.com/*",
+    "*://*.pinterest.ca/*",
+    "*://*.pinterest.co.uk/*",
+    "*://*.pinterest.fr/*",
+    "*://*.pinterest.de/*",
+    "*://*.pinterest.jp/*",
+    "*://*.pinterest.es/*",
+    "*://*.pinterest.it/*",
+    "*://*.pinterest.com.au/*",
+    "*://*.pinterest.co.kr/*",
+    "*://*.pinterest.at/*",
+    "*://*.pinterest.ch/*",
+    "*://*.pinterest.cl/*",
+    "*://*.pinterest.dk/*",
+    "*://*.pinterest.ie/*",
+    "*://*.pinterest.info/*",
+    "*://*.pinterest.mx/*",
+    "*://*.pinterest.net/*",
+    "*://*.pinterest.nl/*",
+    "*://*.pinterest.nz/*",
+    "*://*.pinterest.pt/*",
+    "*://*.pinterest.se/*"
+  ],
+  "background": {
+    "service_worker": "src/background/service-worker.js"
+  },
+  "content_scripts": [
+    {
+      "matches": [
+        "*://*.pinterest.com/*",
+        "*://*.pinterest.ca/*",
+        "*://*.pinterest.co.uk/*",
+        "*://*.pinterest.fr/*",
+        "*://*.pinterest.de/*",
+        "*://*.pinterest.jp/*",
+        "*://*.pinterest.es/*",
+        "*://*.pinterest.it/*",
+        "*://*.pinterest.com.au/*",
+        "*://*.pinterest.co.kr/*",
+        "*://*.pinterest.at/*",
+        "*://*.pinterest.ch/*",
+        "*://*.pinterest.cl/*",
+        "*://*.pinterest.dk/*",
+        "*://*.pinterest.ie/*",
+        "*://*.pinterest.info/*",
+        "*://*.pinterest.mx/*",
+        "*://*.pinterest.net/*",
+        "*://*.pinterest.nl/*",
+        "*://*.pinterest.nz/*",
+        "*://*.pinterest.pt/*",
+        "*://*.pinterest.se/*"
+      ],
+      "css": [
+        "src/content/content.css"
+      ],
+      "js": [
+        "lib/xlsx.full.min.js",
+        "src/content/dom-observer.js",
+        "src/content/content.js"
+      ],
+      "run_at": "document_idle"
+    }
+  ],
+  "action": {
+    "default_popup": "src/popup/popup.html",
+    "default_title": "Zumpey.com - Pinterest Batch Downloader",
+    "default_icon": {
+      "16": "icons/icon16.png",
+      "48": "icons/icon48.png",
+      "128": "icons/icon128.png"
+    }
+  },
+  "options_ui": {
+    "page": "src/options/options.html",
+    "open_in_tab": true
+  },
+  "icons": {
+    "16": "icons/icon16.png",
+    "48": "icons/icon48.png",
+    "128": "icons/icon128.png"
+  },
+  "web_accessible_resources": [
+    {
+      "resources": [
+        "icons/*",
+        "lib/*"
+      ],
+      "matches": [
+        "*://*.pinterest.com/*",
+        "*://*.pinterest.ca/*",
+        "*://*.pinterest.co.uk/*",
+        "*://*.pinterest.fr/*",
+        "*://*.pinterest.de/*",
+        "*://*.pinterest.jp/*",
+        "*://*.pinterest.es/*",
+        "*://*.pinterest.it/*",
+        "*://*.pinterest.com.au/*",
+        "*://*.pinterest.co.kr/*",
+        "*://*.pinterest.at/*",
+        "*://*.pinterest.ch/*",
+        "*://*.pinterest.cl/*",
+        "*://*.pinterest.dk/*",
+        "*://*.pinterest.ie/*",
+        "*://*.pinterest.info/*",
+        "*://*.pinterest.mx/*",
+        "*://*.pinterest.net/*",
+        "*://*.pinterest.nl/*",
+        "*://*.pinterest.nz/*",
+        "*://*.pinterest.pt/*",
+        "*://*.pinterest.se/*"
+      ]
+    }
+  ]
+}
