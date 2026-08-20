@@ -4,7 +4,7 @@
   "version": "1.0.0",
   "description": "Extract Full HD original images, clean outbound destination links, batch select sequentially, and export to Excel/CSV with Zumpey.com.",
   "author": "Zumpey.com",
-  "update_url": "https://raw.githubusercontent.com/shaharyarkp2/zumpey-pinterest-downloader/main/updates.xml",
+  "update_url": "https://raw.githubusercontent.com/shaharyarpk2/zumpey-pinterest-downloader/main/updates.xml",
   "permissions": [
     "downloads",
     "storage",
