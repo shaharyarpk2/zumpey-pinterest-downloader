@@ -711,8 +711,8 @@ async function handleCheckUpdate() {
           latestVersion: latestVer,
           hasUpdate: isNewer,
           releaseUrl: 'https://github.com/shaharyarpk2/zumpey-pinterest-downloader',
-          downloadZipUrl: 'https://raw.githubusercontent.com/shaharyarpk2/zumpey-pinterest-downloader/main/dist/zumpey.zip',
-          releaseNotes: `🔥 Zumpey.com v${latestVer} Release Notes:\n• 🎬 Pinterest 1080p MP4 Video & Reel Downloader\n• 🎮 Real-time Pause / Resume and Cancel Download Controls\n• ⚡ 2-Step "Fetch Full Account / Board" workflow with badge indexing\n• 📊 Default links.xlsx filename with customizable settings option\n• 📁 Custom Download Output folder structure support`
+          downloadZipUrl: 'https://github.com/shaharyarpk2/zumpey-pinterest-downloader/archive/refs/heads/main.zip',
+          releaseNotes: `🔥 Zumpey.com v${latestVer} Release Notes:\n• 📦 1-Click ZIP Archive Direct Download Mode\n• 🎬 Pinterest 1080p MP4 Video & Reel Downloader\n• 🎮 Real-time Pause / Resume and Cancel Controls\n• ⚡ 2-Step "Fetch Full Account / Board" workflow with badge indexing\n• 📊 Default links.xlsx filename with customizable settings option\n• 📁 Custom Download Output folder structure support`
         };
       }
     }
@@ -735,7 +735,7 @@ async function handleCheckUpdate() {
         latestVersion: latestTag || currentVersion,
         hasUpdate: isNewer,
         releaseUrl: data.html_url || 'https://github.com/shaharyarpk2/zumpey-pinterest-downloader',
-        downloadZipUrl: 'https://raw.githubusercontent.com/shaharyarpk2/zumpey-pinterest-downloader/main/dist/zumpey.zip',
+        downloadZipUrl: 'https://github.com/shaharyarpk2/zumpey-pinterest-downloader/archive/refs/heads/main.zip',
         releaseNotes: data.body || 'New features and enhancements available.'
       };
     }
