@@ -50,13 +50,23 @@ graph TD
 
 ## 🚀 Instant Installation Guide
 
-### Option 1: Quick Install (For All Users)
-1. Download the latest **[`zumpey.zip`](https://raw.githubusercontent.com/shaharyarpk2/zumpey-pinterest-downloader/main/dist/zumpey.zip)** archive.
-2. Extract the ZIP folder to your preferred folder on your computer (e.g., `Documents/Zumpey-Extension`).
-3. Open Google Chrome and navigate to `chrome://extensions/`.
-4. Enable **"Developer mode"** in the top-right corner.
-5. Click **"Load unpacked"** in the top-left corner and select the extracted folder.
-6. Navigate to [Pinterest.com](https://www.pinterest.com/) and enjoy high-speed extracting!
+### Option 1: 🌟 1-Click `.crx` Installation (Enables 100% Silent Auto-Updates)
+> **Recommended:** Install once and receive all future updates automatically in the background without re-downloading!
+
+1. Download **[`zumpey.crx`](https://raw.githubusercontent.com/shaharyarpk2/zumpey-pinterest-downloader/main/dist/zumpey.crx)** from GitHub.
+2. Open Google Chrome and go to `chrome://extensions/`.
+3. Enable **"Developer mode"** in the top-right corner.
+4. Drag and drop the downloaded **`zumpey.crx`** file directly onto the extensions page.
+5. Click **"Add extension"** to confirm.
+6. ✨ **Done!** From now on, Chrome will automatically update Zumpey.com in the background whenever a new version is released!
+
+---
+
+### Option 2: Folder Unpacked Mode (For Developers)
+1. Download **[`zumpey.zip`](https://raw.githubusercontent.com/shaharyarpk2/zumpey-pinterest-downloader/main/dist/zumpey.zip)** archive.
+2. Extract the folder on your computer.
+3. Open `chrome://extensions/` with Developer mode ON.
+4. Click **"Load unpacked"** and select the extracted folder.
 
 ---
 
