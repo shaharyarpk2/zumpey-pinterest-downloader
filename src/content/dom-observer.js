@@ -562,6 +562,47 @@
   }
 
   /**
+   * Locate all pin card elements in the current viewport/page
+   */
+  function findPinCardElements() {
+    const cards = [];
+
+    // 1. Prioritize direct pin cards
+    const pinElements = document.querySelectorAll(
+      'div[data-test-id="pin"], div[data-test-id="pin-wrapper"], div[data-test-id="pinrep-source"]'
+    );
+    pinElements.forEach((el) => {
+      if (el.querySelector('img') && !cards.includes(el)) {
+        cards.push(el);
+      }
+    });
+
+    // 2. Also check grid items / list items and extract their inner pin card
+    const gridItems = document.querySelectorAll('div[data-grid-item="true"], div[role="listitem"]');
+    gridItems.forEach((gridItem) => {
+      const innerCard =
+        gridItem.querySelector('div[data-test-id="pin"], div[data-test-id="pin-wrapper"]') ||
+        gridItem.querySelector('img')?.closest('div');
+      if (innerCard && !cards.includes(innerCard)) {
+        cards.push(innerCard);
+      }
+    });
+
+    // 3. Fallback search if still empty
+    if (cards.length === 0) {
+      const allImgs = document.querySelectorAll('img[src*="pinimg.com"]');
+      allImgs.forEach((img) => {
+        const pinContainer = img.closest('div[data-test-id="pin"], div[role="listitem"], a[href*="/pin/"]');
+        if (pinContainer && !cards.includes(pinContainer)) {
+          cards.push(pinContainer);
+        }
+      });
+    }
+
+    return cards;
+  }
+
+  /**
    * Scan DOM for newly added pins
    */
   function scanAndNotify() {
@@ -569,8 +610,8 @@
     const newCards = [];
 
     cards.forEach((card) => {
-      if (!observedElements.has(card)) {
-        observedElements.add(card);
+      if (!processedElements.has(card)) {
+        processedElements.add(card);
         newCards.push(card);
       }
     });
