@@ -60,16 +60,16 @@ document.addEventListener('DOMContentLoaded', async () => {
 
           if (pageContext.pageType === 'board') {
             contextLabel.textContent = `Board: ${pageContext.boardName || 'Board'}`;
-            if (harvestLabel) harvestLabel.textContent = '📥 Download Entire Board';
+            if (harvestLabel) harvestLabel.textContent = '📥 Fetch Full Board';
           } else if (pageContext.pageType && pageContext.pageType.startsWith('profile')) {
             contextLabel.textContent = `Account: @${pageContext.username || 'User'}`;
-            if (harvestLabel) harvestLabel.textContent = '📥 Download Full Account';
+            if (harvestLabel) harvestLabel.textContent = '📥 Fetch Full Account';
           } else if (pageContext.query) {
             contextLabel.textContent = `Search: "${pageContext.query}"`;
-            if (harvestLabel) harvestLabel.textContent = '⚡ Auto-Scroll & Download All';
+            if (harvestLabel) harvestLabel.textContent = '⚡ Auto-Fetch All Pins';
           } else {
             contextLabel.textContent = `Page: Feed`;
-            if (harvestLabel) harvestLabel.textContent = '⚡ Auto-Scroll & Download All';
+            if (harvestLabel) harvestLabel.textContent = '⚡ Auto-Fetch All Pins';
           }
         }
 

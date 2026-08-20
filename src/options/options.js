@@ -16,6 +16,7 @@ document.addEventListener('DOMContentLoaded', async () => {
   const optExportMetadata = document.getElementById('opt-export-metadata');
   const optIncludeHeaderRow = document.getElementById('opt-include-header-row');
   const optExportFormat = document.getElementById('opt-export-format');
+  const optSheetFilename = document.getElementById('opt-sheet-filename');
   const optShowFloatingBar = document.getElementById('opt-show-floating-bar');
   const optAutoRenumber = document.getElementById('opt-auto-renumber');
 
@@ -41,6 +42,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     filenamePattern: '{index}',
     downloadDelayMs: 300,
     exportFormat: 'xlsx',
+    spreadsheetFilename: 'links',
     downloadImages: true,
     exportMetadata: true,
     includeHeaderRow: true,
@@ -88,6 +90,9 @@ document.addEventListener('DOMContentLoaded', async () => {
       optIncludeHeaderRow.checked = settings.includeHeaderRow !== false;
     }
     optExportFormat.value = settings.exportFormat || 'xlsx';
+    if (optSheetFilename) {
+      optSheetFilename.value = settings.spreadsheetFilename || 'links';
+    }
     optShowFloatingBar.checked = settings.showFloatingBar !== false;
     optAutoRenumber.checked = settings.autoRenumber !== false;
 
@@ -177,6 +182,7 @@ document.addEventListener('DOMContentLoaded', async () => {
       exportMetadata: optExportMetadata.checked,
       includeHeaderRow: optIncludeHeaderRow ? optIncludeHeaderRow.checked : true,
       exportFormat: optExportFormat.value,
+      spreadsheetFilename: optSheetFilename ? (optSheetFilename.value.trim() || 'links') : 'links',
       showFloatingBar: optShowFloatingBar.checked,
       autoRenumber: optAutoRenumber.checked,
       includeColumns: cols

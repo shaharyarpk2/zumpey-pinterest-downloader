@@ -580,3 +580,207 @@
   box-shadow: 0 6px 16px rgba(99, 102, 241, 0.5);
   transform: translateY(-2px);
 }
+
+/* ==========================================================================
+   Live On-Screen Download Progress Modal & HUD
+   ========================================================================== */
+
+#zumpey-download-modal {
+  position: fixed;
+  top: 24px;
+  right: 24px;
+  z-index: 2147483647;
+  display: flex;
+  flex-direction: column;
+  pointer-events: none;
+  opacity: 0;
+  transform: translateY(-16px) scale(0.96);
+  transition: all 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+  font-family: var(--pinflow-font);
+}
+
+#zumpey-download-modal.active {
+  pointer-events: auto;
+  opacity: 1;
+  transform: translateY(0) scale(1);
+}
+
+.download-modal-card {
+  width: 380px;
+  background: rgba(15, 18, 26, 0.92);
+  backdrop-filter: blur(24px);
+  -webkit-backdrop-filter: blur(24px);
+  border: 1.5px solid rgba(230, 0, 35, 0.35);
+  border-radius: 16px;
+  padding: 18px 20px;
+  box-shadow: 0 16px 48px rgba(0, 0, 0, 0.7), 0 0 30px rgba(230, 0, 35, 0.25);
+  color: #fff;
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+.download-modal-header {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+}
+
+.download-spinner-ring {
+  width: 44px;
+  height: 44px;
+  border-radius: 50%;
+  background: radial-gradient(circle, rgba(230, 0, 35, 0.2) 0%, rgba(20, 20, 30, 0.8) 100%);
+  border: 2px solid rgba(255, 255, 255, 0.12);
+  border-top-color: #E60023;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  animation: dlSpin 1.2s linear infinite;
+  position: relative;
+}
+
+.download-modal-header.completed .download-spinner-ring {
+  animation: none;
+  border-color: #22c55e;
+  background: rgba(34, 197, 94, 0.2);
+}
+
+@keyframes dlSpin {
+  to { transform: rotate(360deg); }
+}
+
+.download-percent-text {
+  font-size: 11px;
+  font-weight: 800;
+  color: #fff;
+  animation: counterRotate 1.2s linear infinite;
+}
+
+.download-modal-header.completed .download-percent-text {
+  animation: none;
+  color: #4ade80;
+}
+
+@keyframes counterRotate {
+  to { transform: rotate(-360deg); }
+}
+
+.download-modal-title-wrap {
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+.download-modal-title-wrap h4 {
+  margin: 0;
+  font-size: 14px;
+  font-weight: 700;
+  color: #fff;
+  letter-spacing: -0.2px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.download-modal-subtitle {
+  font-size: 12px;
+  color: rgba(255, 255, 255, 0.6);
+  margin-top: 2px;
+}
+
+.download-progress-bar-container {
+  width: 100%;
+  height: 8px;
+  background: rgba(255, 255, 255, 0.08);
+  border-radius: 6px;
+  overflow: hidden;
+  position: relative;
+}
+
+.download-progress-fill {
+  height: 100%;
+  background: linear-gradient(90deg, #E60023 0%, #ff4d67 50%, #ff758c 100%);
+  border-radius: 6px;
+  transition: width 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+  box-shadow: 0 0 12px rgba(230, 0, 35, 0.8);
+}
+
+.download-progress-fill.completed {
+  background: linear-gradient(90deg, #16a34a 0%, #22c55e 100%);
+  box-shadow: 0 0 12px rgba(34, 197, 94, 0.8);
+}
+
+.download-modal-footer {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.download-counts {
+  font-size: 12px;
+  color: rgba(255, 255, 255, 0.7);
+}
+
+.download-counts strong {
+  color: #fff;
+  font-weight: 700;
+}
+
+.download-modal-ctrl-btns {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.download-ctrl-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 5px;
+  border-radius: 8px;
+  padding: 6px 12px;
+  font-size: 11px;
+  font-weight: 700;
+  cursor: pointer;
+  outline: none;
+  transition: all 0.2s ease;
+}
+
+.download-ctrl-btn.pause {
+  background: rgba(234, 179, 8, 0.18);
+  border: 1px solid rgba(234, 179, 8, 0.5);
+  color: #fde047;
+}
+
+.download-ctrl-btn.pause:hover {
+  background: rgba(234, 179, 8, 0.3);
+  box-shadow: 0 0 10px rgba(234, 179, 8, 0.4);
+}
+
+.download-ctrl-btn.pause.resumed {
+  background: rgba(34, 197, 94, 0.2);
+  border-color: rgba(34, 197, 94, 0.6);
+  color: #4ade80;
+}
+
+.download-ctrl-btn.pause.resumed:hover {
+  background: rgba(34, 197, 94, 0.35);
+  box-shadow: 0 0 10px rgba(34, 197, 94, 0.4);
+}
+
+.download-ctrl-btn.cancel {
+  background: rgba(239, 68, 68, 0.15);
+  border: 1px solid rgba(239, 68, 68, 0.4);
+  color: #fca5a5;
+}
+
+.download-ctrl-btn.cancel:hover {
+  background: rgba(239, 68, 68, 0.3);
+  border-color: #ef4444;
+  color: #fff;
+  box-shadow: 0 0 10px rgba(239, 68, 68, 0.4);
+}
+
+

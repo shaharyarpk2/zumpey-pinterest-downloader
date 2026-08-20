@@ -8,6 +8,7 @@ const DEFAULT_SETTINGS = {
   filenamePattern: '{index}', // 001.jpg (Clean Sequential Number Only)
   downloadDelayMs: 300,
   exportFormat: 'xlsx', // 'xlsx' or 'csv'
+  spreadsheetFilename: 'links', // Default filename for metadata sheet
   downloadImages: true,
   exportMetadata: true,
   includeHeaderRow: true, // 1st row header inclusion toggle
@@ -81,6 +82,16 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
 
     case 'GET_DOWNLOAD_STATUS':
       sendResponse({ activeSessions: Array.from(activeSessions.values()) });
+      return true;
+
+    case 'PAUSE_BATCH':
+      handlePauseBatch(message.sessionId);
+      sendResponse({ success: true });
+      return true;
+
+    case 'RESUME_BATCH':
+      handleResumeBatch(message.sessionId);
+      sendResponse({ success: true });
       return true;
 
     case 'CANCEL_BATCH':
@@ -282,6 +293,7 @@ async function handleBatchDownload(pins, batchMetadata = {}, tabId = null) {
     completed: 0,
     failed: 0,
     isCancelled: false,
+    isPaused: false,
     folderName: folderName,
     tabId: tabId
   };
@@ -304,6 +316,10 @@ async function executeBatchQueue(sessionId, pins, folderName, settings, batchMet
   const metadataRows = [];
 
   for (let i = 0; i < pins.length; i++) {
+    while (session.isPaused && !session.isCancelled) {
+      await new Promise((res) => setTimeout(res, 200));
+    }
+
     if (session.isCancelled) {
       break;
     }
@@ -489,7 +505,11 @@ async function exportMetadataSheet(rows, folderName, settings, batchMetadata) {
   const format = (settings.exportFormat || 'xlsx').toLowerCase();
   const includeCols = settings.includeColumns || DEFAULT_SETTINGS.includeColumns;
   const includeHeaderRow = settings.includeHeaderRow !== false;
-  const fileNameBase = `Zumpey_Metadata_${sanitizeFilename(batchMetadata.query || 'Pins')}`;
+  const rawSheetName = (settings.spreadsheetFilename || 'links').trim() || 'links';
+  const fileNameBase = sanitizeFilename(formatPattern(rawSheetName, {
+    query: batchMetadata.query || 'Pins',
+    board: batchMetadata.boardName || 'Pinterest'
+  }));
 
   const csvContent = generateCSV(rows, includeCols, includeHeaderRow);
   const dataUri = 'data:text/csv;charset=utf-8,' + encodeURIComponent(csvContent);
@@ -505,12 +525,36 @@ async function exportMetadataSheet(rows, folderName, settings, batchMetadata) {
 }
 
 /**
+ * Pause an active batch session
+ */
+function handlePauseBatch(sessionId) {
+  const session = activeSessions.get(sessionId);
+  if (session) {
+    session.isPaused = true;
+    notifyProgress(session);
+  }
+}
+
+/**
+ * Resume an active batch session
+ */
+function handleResumeBatch(sessionId) {
+  const session = activeSessions.get(sessionId);
+  if (session) {
+    session.isPaused = false;
+    notifyProgress(session);
+  }
+}
+
+/**
  * Cancel an active batch session
  */
 function handleCancelBatch(sessionId) {
   const session = activeSessions.get(sessionId);
   if (session) {
     session.isCancelled = true;
+    session.isPaused = false;
+    notifyCompletion(session);
   }
 }
 
@@ -525,6 +569,8 @@ function notifyProgress(session) {
       total: session.total,
       completed: session.completed,
       failed: session.failed,
+      isPaused: !!session.isPaused,
+      isCancelled: !!session.isCancelled,
       progressPercent: Math.round(((session.completed + session.failed) / session.total) * 100)
     }
   };

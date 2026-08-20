@@ -396,6 +396,148 @@
     }
   }
 
+  // =========================================================================
+  // Live On-Screen Download Progress Modal & HUD
+  // =========================================================================
+
+  function showDownloadModal(totalCount, queryTitle) {
+    let modal = document.getElementById('zumpey-download-modal');
+    if (!modal) {
+      modal = document.createElement('div');
+      modal.id = 'zumpey-download-modal';
+      modal.innerHTML = `
+        <div class="download-modal-card">
+          <div class="download-modal-header" id="zumpey-dl-header">
+            <div class="download-spinner-ring" id="zumpey-dl-spinner">
+              <span class="download-percent-text" id="zumpey-dl-percent">0%</span>
+            </div>
+            <div class="download-modal-title-wrap">
+              <h4 id="zumpey-dl-title">Downloading Pins Batch...</h4>
+              <span class="download-modal-subtitle" id="zumpey-dl-subtitle">Saving high-resolution images & links</span>
+            </div>
+          </div>
+
+          <div class="download-progress-bar-container">
+            <div class="download-progress-fill" id="zumpey-dl-fill" style="width: 0%;"></div>
+          </div>
+
+          <div class="download-modal-footer">
+            <div class="download-counts">
+              <span>Progress: <strong id="zumpey-dl-count">0 / ${totalCount}</strong></span>
+            </div>
+            <div class="download-modal-ctrl-btns">
+              <button class="download-ctrl-btn pause" id="zumpey-dl-pause" title="Pause or Resume batch download">⏸ Pause</button>
+              <button class="download-ctrl-btn cancel" id="zumpey-dl-cancel" title="Stop & Cancel download">⏹ Cancel</button>
+            </div>
+          </div>
+        </div>
+      `;
+      document.body.appendChild(modal);
+
+      const pauseBtn = document.getElementById('zumpey-dl-pause');
+      pauseBtn.addEventListener('click', () => {
+        if (!state.currentSessionId) return;
+        state.isDownloadPaused = !state.isDownloadPaused;
+        if (state.isDownloadPaused) {
+          chrome.runtime.sendMessage({ action: 'PAUSE_BATCH', sessionId: state.currentSessionId });
+          pauseBtn.textContent = '▶ Resume';
+          pauseBtn.classList.add('resumed');
+          const sub = document.getElementById('zumpey-dl-subtitle');
+          if (sub) sub.textContent = '⏸ Download Paused';
+          const spinner = document.getElementById('zumpey-dl-spinner');
+          if (spinner) spinner.style.animationPlayState = 'paused';
+          showToast('Download paused.', 'info', 1500);
+        } else {
+          chrome.runtime.sendMessage({ action: 'RESUME_BATCH', sessionId: state.currentSessionId });
+          pauseBtn.textContent = '⏸ Pause';
+          pauseBtn.classList.remove('resumed');
+          const sub = document.getElementById('zumpey-dl-subtitle');
+          if (sub) sub.textContent = 'Saving high-resolution images & links';
+          const spinner = document.getElementById('zumpey-dl-spinner');
+          if (spinner) spinner.style.animationPlayState = 'running';
+          showToast('Download resumed.', 'info', 1500);
+        }
+      });
+
+      document.getElementById('zumpey-dl-cancel').addEventListener('click', () => {
+        if (state.currentSessionId) {
+          chrome.runtime.sendMessage({ action: 'CANCEL_BATCH', sessionId: state.currentSessionId });
+        }
+        state.isDownloading = false;
+        state.isDownloadPaused = false;
+        hideDownloadModal();
+        updateFloatingBar();
+        showToast('Download stopped & cancelled.', 'info', 2500);
+      });
+    }
+
+    state.isDownloadPaused = false;
+    const titleElem = document.getElementById('zumpey-dl-title');
+    const headerElem = document.getElementById('zumpey-dl-header');
+    const fillElem = document.getElementById('zumpey-dl-fill');
+    const percentElem = document.getElementById('zumpey-dl-percent');
+    const countElem = document.getElementById('zumpey-dl-count');
+    const subtitleElem = document.getElementById('zumpey-dl-subtitle');
+    const pauseBtn = document.getElementById('zumpey-dl-pause');
+    const spinner = document.getElementById('zumpey-dl-spinner');
+
+    if (titleElem) titleElem.textContent = `Downloading ${queryTitle || 'Pins'}...`;
+    if (subtitleElem) subtitleElem.textContent = 'Saving high-resolution images & links';
+    if (headerElem) headerElem.classList.remove('completed');
+    if (fillElem) {
+      fillElem.classList.remove('completed');
+      fillElem.style.width = '0%';
+    }
+    if (percentElem) percentElem.textContent = '0%';
+    if (countElem) countElem.textContent = `0 / ${totalCount}`;
+    if (pauseBtn) {
+      pauseBtn.textContent = '⏸ Pause';
+      pauseBtn.classList.remove('resumed');
+      pauseBtn.style.display = 'inline-flex';
+    }
+    if (spinner) spinner.style.animationPlayState = 'running';
+
+    modal.classList.add('active');
+  }
+
+  function updateDownloadModal(completed, total, percent) {
+    const fillElem = document.getElementById('zumpey-dl-fill');
+    const percentElem = document.getElementById('zumpey-dl-percent');
+    const countElem = document.getElementById('zumpey-dl-count');
+
+    if (fillElem) fillElem.style.width = `${percent}%`;
+    if (percentElem) percentElem.textContent = `${percent}%`;
+    if (countElem) countElem.textContent = `${completed} / ${total}`;
+  }
+
+  function completeDownloadModal(completed, folderName) {
+    const titleElem = document.getElementById('zumpey-dl-title');
+    const subtitleElem = document.getElementById('zumpey-dl-subtitle');
+    const headerElem = document.getElementById('zumpey-dl-header');
+    const fillElem = document.getElementById('zumpey-dl-fill');
+    const percentElem = document.getElementById('zumpey-dl-percent');
+    const pauseBtn = document.getElementById('zumpey-dl-pause');
+
+    if (titleElem) titleElem.textContent = `🎉 Download Complete!`;
+    if (subtitleElem) subtitleElem.textContent = `${completed} pins saved in ${folderName || 'Downloads'}`;
+    if (headerElem) headerElem.classList.add('completed');
+    if (fillElem) {
+      fillElem.classList.add('completed');
+      fillElem.style.width = '100%';
+    }
+    if (percentElem) percentElem.textContent = `✓`;
+    if (pauseBtn) pauseBtn.style.display = 'none';
+
+    setTimeout(() => {
+      hideDownloadModal();
+    }, 4500);
+  }
+
+  function hideDownloadModal() {
+    const modal = document.getElementById('zumpey-download-modal');
+    if (modal) modal.classList.remove('active');
+  }
+
   /**
    * Trigger batch download through background service worker
    */
@@ -413,13 +555,17 @@
     state.isDownloading = true;
     updateFloatingBar();
 
-    showToast(`Resolving outbound links for ${state.selectedPins.length} pins...`, 'info', 1500);
+    const context = window.PinFlowDOM ? window.PinFlowDOM.getPageContext() : {};
+    const totalPins = state.selectedPins.length;
+    const queryName = context.boardName || context.query || 'Pins';
+
+    // Launch live progress modal
+    showDownloadModal(totalPins, queryName);
+
+    showToast(`Resolving outbound links for ${totalPins} pins...`, 'info', 1200);
     await resolveSelectedPinsLinks(state.selectedPins);
 
-    const context = window.PinFlowDOM ? window.PinFlowDOM.getPageContext() : {};
     const pinsPayload = state.selectedPins.map((p) => p.data);
-
-    showToast(`Starting batch download (${pinsPayload.length} pins)...`, 'info');
 
     try {
       const res = await chrome.runtime.sendMessage({
@@ -432,25 +578,29 @@
         }
       });
 
-      if (!res || !res.success) {
+      if (res && res.success) {
+        state.currentSessionId = res.sessionId;
+      } else {
         state.isDownloading = false;
+        hideDownloadModal();
         updateFloatingBar();
         showToast(`Failed to start batch: ${res?.error || 'Unknown'}`, 'error');
       }
     } catch (err) {
       state.isDownloading = false;
+      hideDownloadModal();
       updateFloatingBar();
       showToast('Error initiating batch download.', 'error');
     }
   }
 
   // =========================================================================
-  // Full Board / Full Account Auto-Harvesting & Continuous Scraper Engine
+  // Full Board / Full Account Auto-Fetching & Continuous Scraper Engine
   // =========================================================================
 
   function startAutoHarvest(customTitle = '') {
     if (state.isHarvesting) {
-      stopAutoHarvest(true);
+      stopAutoHarvest();
       return;
     }
     state.isHarvesting = true;
@@ -459,16 +609,16 @@
     let titleText = customTitle;
     if (!titleText) {
       if (context.pageType === 'board') {
-        titleText = `Harvesting Board: ${context.boardName || 'Board'}`;
+        titleText = `Fetching Board: ${context.boardName || 'Board'}`;
       } else if (context.pageType && context.pageType.startsWith('profile')) {
-        titleText = `Harvesting Profile: @${context.username || 'Account'}`;
+        titleText = `Fetching Account: @${context.username || 'Account'}`;
       } else {
-        titleText = 'Auto-Harvesting All Pins...';
+        titleText = 'Auto-Fetching All Pins...';
       }
     }
 
     createOrShowHarvestHUD(titleText);
-    showToast(`Started continuous auto-harvesting. Sit back!`, 'info', 2000);
+    showToast(`Started auto-fetching pins. Scrolling through feed...`, 'info', 2500);
 
     let lastScrollY = window.scrollY;
     let staleCount = 0;
@@ -483,32 +633,33 @@
         return;
       }
 
-      // Collect pins
+      // Collect all visible pins into selection
       selectAllVisibleSilently();
       updateHarvestHUD();
 
       // Scroll smoothly down
-      window.scrollBy({ top: 900, behavior: 'smooth' });
+      window.scrollBy({ top: 850, behavior: 'smooth' });
 
-      // Check if end of page reached
+      // Check if end of page reached or slow connection loading
       const currentScrollY = window.scrollY;
-      const atBottom = window.innerHeight + window.scrollY >= (document.documentElement.scrollHeight - 120);
+      const atBottom = window.innerHeight + window.scrollY >= (document.documentElement.scrollHeight - 140);
 
       if (atBottom || Math.abs(currentScrollY - lastScrollY) < 15) {
         staleCount++;
-        if (staleCount >= 4) {
+        // Allow up to 7 ticks (approx 4.2s) to handle slower network buffering
+        if (staleCount >= 7) {
           // Finished entire board / account!
-          stopAutoHarvest(true);
+          stopAutoHarvest();
         }
       } else {
         staleCount = 0;
       }
 
       lastScrollY = currentScrollY;
-    }, 450);
+    }, 600);
   }
 
-  function stopAutoHarvest(triggerDownload = false) {
+  function stopAutoHarvest() {
     if (!state.isHarvesting) return;
     state.isHarvesting = false;
     if (state.harvestInterval) {
@@ -517,12 +668,13 @@
     }
 
     hideHarvestHUD();
+    selectAllVisibleSilently();
+    updateFloatingBar();
 
-    if (triggerDownload && state.selectedPins.length > 0) {
-      showToast(`Finished harvesting ${state.selectedPins.length} pins! Starting batch download...`, 'success', 4000);
-      startBatchDownload();
+    if (state.selectedPins.length > 0) {
+      showToast(`Successfully fetched ${state.selectedPins.length} pins! Click "Download Batch" when ready.`, 'success', 5000);
     } else {
-      showToast(`Harvest stopped with ${state.selectedPins.length} pins collected.`, 'info', 2500);
+      showToast(`Fetching stopped with 0 pins collected.`, 'info', 2500);
     }
   }
 
@@ -536,21 +688,22 @@
           <div class="harvest-spinner"></div>
           <div class="harvest-info">
             <span class="harvest-title" id="harvest-hud-title">${escapeHtml(title)}</span>
-            <span class="harvest-stats">Collecting all pins: <strong id="harvest-hud-count">0 pins</strong></span>
+            <span class="harvest-stats">Auto-scrolling & fetching: <strong id="harvest-hud-count">0 pins</strong></span>
           </div>
         </div>
         <div class="harvest-actions">
-          <button id="harvest-btn-stop" class="harvest-btn primary">⏹ Stop & Download (<span id="harvest-btn-count">0</span>)</button>
+          <button id="harvest-btn-stop" class="harvest-btn primary">⏹ Finish Fetching (<span id="harvest-btn-count">0</span>)</button>
           <button id="harvest-btn-cancel" class="harvest-btn secondary">✖ Cancel</button>
         </div>
       `;
       document.body.appendChild(hud);
 
       document.getElementById('harvest-btn-stop').addEventListener('click', () => {
-        stopAutoHarvest(true);
+        stopAutoHarvest();
       });
       document.getElementById('harvest-btn-cancel').addEventListener('click', () => {
-        stopAutoHarvest(false);
+        clearSelection();
+        stopAutoHarvest();
       });
     }
 
@@ -582,11 +735,11 @@
 
     const context = window.PinFlowDOM ? window.PinFlowDOM.getPageContext() : {};
 
-    let harvestBtnText = 'Auto-Scroll All';
+    let harvestBtnText = 'Auto-Fetch All';
     if (context.pageType === 'board') {
-      harvestBtnText = 'Download Full Board';
+      harvestBtnText = 'Fetch Full Board';
     } else if (context.pageType && context.pageType.startsWith('profile')) {
-      harvestBtnText = 'Download Full Account';
+      harvestBtnText = 'Fetch Full Account';
     }
 
     const dock = document.createElement('div');
@@ -603,7 +756,7 @@
       <div class="pinflow-count-pill" id="pinflow-count-pill">
         <span class="pinflow-count-number" id="pinflow-count-num">0</span> Selected
       </div>
-      <button class="pinflow-dock-btn pinflow-dock-btn-harvest" id="pinflow-btn-harvest" title="Continuous auto-scroll & download all pins">
+      <button class="pinflow-dock-btn pinflow-dock-btn-harvest" id="pinflow-btn-harvest" title="Auto-scroll and fetch all pins into selection">
         ${ICONS.harvest}
         <span id="pinflow-harvest-label">${harvestBtnText}</span>
       </button>
@@ -743,6 +896,11 @@
           progressWrap.style.display = 'block';
           progressBar.style.width = `${message.session.progressPercent}%`;
         }
+        updateDownloadModal(
+          message.session.completed,
+          message.session.total,
+          message.session.progressPercent
+        );
         break;
       }
 
@@ -751,6 +909,7 @@
         updateFloatingBar();
         const progressWrap = document.getElementById('pinflow-dock-progress-wrap');
         if (progressWrap) progressWrap.style.display = 'none';
+        completeDownloadModal(message.session.completed, message.session.folderName);
         showToast(
           `Batch complete! ${message.session.completed} saved in ${message.session.folderName}`,
           'success',
