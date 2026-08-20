@@ -165,4 +165,26 @@ document.addEventListener('DOMContentLoaded', async () => {
     e.preventDefault();
     openOptions();
   });
+
+  // 6. Check for Cloud Updates
+  try {
+    const updateBanner = document.getElementById('popup-update-banner');
+    const updateText = document.getElementById('popup-update-text');
+    const updateLink = document.getElementById('btn-popup-update-link');
+
+    chrome.runtime.sendMessage({ action: 'CHECK_UPDATE' }, (res) => {
+      if (res && res.hasUpdate && updateBanner) {
+        if (updateText) updateText.textContent = `v${res.latestVersion} available!`;
+        if (updateLink) {
+          updateLink.addEventListener('click', (e) => {
+            e.preventDefault();
+            openOptions();
+          });
+        }
+        updateBanner.style.display = 'flex';
+      }
+    });
+  } catch (err) {
+    // Ignore
+  }
 });

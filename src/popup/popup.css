@@ -101,6 +101,57 @@ body {
   border-color: var(--border-hover);
 }
 
+/* Update Available Banner */
+.popup-update-banner {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 8px 12px;
+  background: rgba(230, 0, 35, 0.15);
+  border: 1px solid rgba(230, 0, 35, 0.4);
+  border-radius: 8px;
+  animation: fadeIn 0.3s ease;
+}
+
+.update-banner-info {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 11px;
+  font-weight: 600;
+  color: #ff8888;
+}
+
+.update-pulse {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: #E60023;
+  box-shadow: 0 0 8px #E60023;
+  animation: pulseDot 1s infinite alternate;
+}
+
+@keyframes pulseDot {
+  from { opacity: 0.4; }
+  to { opacity: 1; }
+}
+
+.update-banner-btn {
+  background: #E60023;
+  color: #fff;
+  text-decoration: none;
+  font-size: 10px;
+  font-weight: 700;
+  padding: 4px 10px;
+  border-radius: 6px;
+  transition: all 0.2s ease;
+}
+
+.update-banner-btn:hover {
+  background: #ff1a38;
+  box-shadow: 0 0 10px rgba(230, 0, 35, 0.6);
+}
+
 /* Status Card */
 .status-card {
   background: var(--bg-card);
