@@ -3,6 +3,12 @@
  * Background Service Worker (Manifest V3)
  */
 
+try {
+  importScripts('../../lib/jszip.min.js');
+} catch (e) {
+  console.warn('[Zumpey.com] JSZip import note:', e);
+}
+
 const DEFAULT_SETTINGS = {
   folderPattern: 'Zumpey_Exports/{datetime}_{query}',
   filenamePattern: '{index}', // 001.jpg (Clean Sequential Number Only)
@@ -10,6 +16,7 @@ const DEFAULT_SETTINGS = {
   exportFormat: 'xlsx', // 'xlsx' or 'csv'
   spreadsheetFilename: 'links', // Default filename for metadata sheet
   downloadImages: true,
+  zipPackaging: false, // 1-Click ZIP Archive Packaging Mode
   exportMetadata: true,
   includeHeaderRow: true, // 1st row header inclusion toggle
   fallbackResolution: true,
@@ -18,6 +25,7 @@ const DEFAULT_SETTINGS = {
   includeColumns: {
     seqNumber: false,
     fileName: false,
+    mediaType: false,
     pinTitle: false,
     outboundUrl: true, // Only Outbound / Destination Link enabled by default
     pinUrl: false,
@@ -315,6 +323,8 @@ async function executeBatchQueue(sessionId, pins, folderName, settings, batchMet
 
   const downloadDelay = Math.max(100, parseInt(settings.downloadDelayMs, 10) || 300);
   const metadataRows = [];
+  const useZip = !!settings.zipPackaging && (typeof JSZip !== 'undefined');
+  const zip = useZip ? new JSZip() : null;
 
   for (let i = 0; i < pins.length; i++) {
     while (session.isPaused && !session.isCancelled) {
@@ -391,8 +401,19 @@ async function executeBatchQueue(sessionId, pins, folderName, settings, batchMet
       dateExtracted: extractedTime
     });
 
-    // Perform media download if enabled
-    if (settings.downloadImages && primaryMediaUrl) {
+    // 1-Click ZIP Packaging mode
+    if (useZip && zip && primaryMediaUrl) {
+      try {
+        const resp = await fetch(primaryMediaUrl);
+        const buf = await resp.arrayBuffer();
+        zip.file(fileNameOnly, buf);
+        session.completed++;
+      } catch (zipErr) {
+        console.warn(`[Zumpey.com] Zip media buffer error on #${indexNum}:`, zipErr);
+        session.failed++;
+      }
+    } else if (settings.downloadImages && primaryMediaUrl) {
+      // Direct individual file downloads
       try {
         const downloadId = await chrome.downloads.download({
           url: primaryMediaUrl,
@@ -402,7 +423,7 @@ async function executeBatchQueue(sessionId, pins, folderName, settings, batchMet
         });
 
         // Register for fallback if needed
-        if (settings.fallbackResolution && pin.fallbackImageUrl && pin.fallbackImageUrl !== primaryImgUrl) {
+        if (settings.fallbackResolution && pin.fallbackImageUrl && pin.fallbackImageUrl !== primaryMediaUrl) {
           pendingFallbacks.set(downloadId, {
             fallbackUrl: pin.fallbackImageUrl,
             targetFilename: fullImagePath,
@@ -413,22 +434,7 @@ async function executeBatchQueue(sessionId, pins, folderName, settings, batchMet
         session.completed++;
       } catch (err) {
         console.warn(`[Zumpey.com] Error downloading pin #${indexNum}:`, err);
-        // Direct attempt with fallback URL if available
-        if (pin.fallbackImageUrl && pin.fallbackImageUrl !== primaryImgUrl) {
-          try {
-            await chrome.downloads.download({
-              url: pin.fallbackImageUrl,
-              filename: fullImagePath,
-              saveAs: false,
-              conflictAction: 'uniquify'
-            });
-            session.completed++;
-          } catch (fbErr) {
-            session.failed++;
-          }
-        } else {
-          session.failed++;
-        }
+        session.failed++;
       }
     } else {
       session.completed++;
@@ -443,8 +449,34 @@ async function executeBatchQueue(sessionId, pins, folderName, settings, batchMet
     }
   }
 
-  // Export metadata sheet if enabled
-  if (settings.exportMetadata && metadataRows.length > 0 && !session.isCancelled) {
+  // Handle final export (Single ZIP or Separate Metadata Sheet)
+  if (useZip && zip && !session.isCancelled) {
+    if (settings.exportMetadata && metadataRows.length > 0) {
+      const csvContent = generateCSV(
+        metadataRows,
+        settings.includeColumns || DEFAULT_SETTINGS.includeColumns,
+        settings.includeHeaderRow !== false
+      );
+      const rawSheetName = (settings.spreadsheetFilename || 'links').trim() || 'links';
+      zip.file(`${rawSheetName}.csv`, csvContent);
+    }
+
+    try {
+      const zipBase64 = await zip.generateAsync({ type: 'base64' });
+      const zipDataUri = 'data:application/zip;base64,' + zipBase64;
+      const cleanFolderName = folderName.replace(/\//g, '_');
+      const zipFilename = sanitizeFilename(cleanFolderName || `Zumpey_${batchMetadata.query || 'Batch'}_${Date.now()}`) + '.zip';
+
+      await chrome.downloads.download({
+        url: zipDataUri,
+        filename: zipFilename,
+        saveAs: false,
+        conflictAction: 'uniquify'
+      });
+    } catch (zipGenErr) {
+      console.error('[Zumpey.com] ZIP generation failed:', zipGenErr);
+    }
+  } else if (settings.exportMetadata && metadataRows.length > 0 && !session.isCancelled) {
     try {
       await exportMetadataSheet(metadataRows, folderName, settings, batchMetadata);
     } catch (sheetErr) {

@@ -138,6 +138,19 @@
           </div>
 
           <div class="form-group">
+            <div class="switch-row">
+              <div>
+                <label class="switch-label">📦 Download Batch as Single 1-Click ZIP Archive</label>
+                <p class="switch-desc">Packages all images, 1080p MP4 videos, and Excel links sheet into one single .zip file (Prevents multiple download popups).</p>
+              </div>
+              <label class="toggle-switch">
+                <input type="checkbox" id="opt-zip-packaging" />
+                <span class="slider"></span>
+              </label>
+            </div>
+          </div>
+
+          <div class="form-group">
             <label for="download-delay">Download Stagger Delay (ms)</label>
             <div class="range-container">
               <input type="range" id="download-delay" min="100" max="2000" step="50" value="300" class="form-range" />

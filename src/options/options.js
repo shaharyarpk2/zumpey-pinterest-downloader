@@ -13,6 +13,7 @@ document.addEventListener('DOMContentLoaded', async () => {
 
   const optDownloadImages = document.getElementById('opt-download-images');
   const optFallbackResolution = document.getElementById('opt-fallback-resolution');
+  const optZipPackaging = document.getElementById('opt-zip-packaging');
   const optExportMetadata = document.getElementById('opt-export-metadata');
   const optIncludeHeaderRow = document.getElementById('opt-include-header-row');
   const optExportFormat = document.getElementById('opt-export-format');
@@ -28,6 +29,7 @@ document.addEventListener('DOMContentLoaded', async () => {
   const columnKeys = [
     'seqNumber',
     'fileName',
+    'mediaType',
     'pinTitle',
     'outboundUrl',
     'pinUrl',
@@ -44,6 +46,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     exportFormat: 'xlsx',
     spreadsheetFilename: 'links',
     downloadImages: true,
+    zipPackaging: false,
     exportMetadata: true,
     includeHeaderRow: true,
     fallbackResolution: true,
@@ -52,6 +55,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     includeColumns: {
       seqNumber: false,
       fileName: false,
+      mediaType: false,
       pinTitle: false,
       outboundUrl: true,
       pinUrl: false,
@@ -85,6 +89,9 @@ document.addEventListener('DOMContentLoaded', async () => {
 
     optDownloadImages.checked = settings.downloadImages !== false;
     optFallbackResolution.checked = settings.fallbackResolution !== false;
+    if (optZipPackaging) {
+      optZipPackaging.checked = settings.zipPackaging === true;
+    }
     optExportMetadata.checked = settings.exportMetadata !== false;
     if (optIncludeHeaderRow) {
       optIncludeHeaderRow.checked = settings.includeHeaderRow !== false;
@@ -179,6 +186,7 @@ document.addEventListener('DOMContentLoaded', async () => {
       downloadDelayMs: parseInt(downloadDelayRange.value, 10) || 300,
       downloadImages: optDownloadImages.checked,
       fallbackResolution: optFallbackResolution.checked,
+      zipPackaging: optZipPackaging ? optZipPackaging.checked : false,
       exportMetadata: optExportMetadata.checked,
       includeHeaderRow: optIncludeHeaderRow ? optIncludeHeaderRow.checked : true,
       exportFormat: optExportFormat.value,
