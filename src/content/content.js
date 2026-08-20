@@ -122,6 +122,19 @@
     badgeWrapper.appendChild(orderBadge);
     pinElement.appendChild(badgeWrapper);
 
+    // If card is a video / reel, display video pill badge
+    const pinData = window.PinFlowDOM ? window.PinFlowDOM.extractPinData(pinElement) : null;
+    if (pinData && pinData.isVideo) {
+      const videoPill = document.createElement('div');
+      videoPill.className = 'pinflow-video-pill';
+      videoPill.title = 'Pinterest Video / Reel (1080p MP4)';
+      videoPill.innerHTML = `
+        <svg viewBox="0 0 24 24" width="11" height="11" fill="currentColor"><path d="M8 5v14l11-7z"/></svg>
+        <span>1080p MP4</span>
+      `;
+      pinElement.appendChild(videoPill);
+    }
+
     // 2. Create Top-Right Action Container
     const actionsWrapper = document.createElement('div');
     actionsWrapper.className = 'pinflow-pin-actions';
@@ -129,7 +142,7 @@
     // Quick Download Button
     const downloadBtn = document.createElement('button');
     downloadBtn.className = 'pinflow-action-btn';
-    downloadBtn.setAttribute('data-tooltip', 'Download Original HD');
+    downloadBtn.setAttribute('data-tooltip', pinData?.isVideo ? 'Download 1080p MP4 Video' : 'Download Original HD');
     downloadBtn.innerHTML = ICONS.download;
     downloadBtn.addEventListener('click', (e) => {
       e.stopPropagation();
@@ -171,6 +184,15 @@
       return;
     }
 
+    if (pinData.isVideo && !pinData.videoUrl && pinData.pinId) {
+      showToast('Resolving 1080p MP4 stream...', 'info', 1200);
+      const vUrl = await window.PinFlowDOM.resolvePinVideoUrl(pinData.pinId);
+      if (vUrl) {
+        pinData.videoUrl = vUrl;
+        pinData.originalImageUrl = vUrl;
+      }
+    }
+
     showToast(`Downloading: ${pinData.title.substring(0, 30)}...`, 'info', 2000);
 
     try {
@@ -178,12 +200,13 @@
         action: 'SINGLE_DOWNLOAD',
         pinData: {
           ...pinData,
-          index: 1
+          index: 1,
+          element: undefined
         }
       });
 
       if (res && res.success) {
-        showToast(`Download started!`, 'success');
+        showToast(pinData.isVideo ? 'Video MP4 download started!' : 'HD Image download started!', 'success');
       } else {
         showToast(`Download failed: ${res?.error || 'Unknown'}`, 'error');
       }
@@ -350,22 +373,32 @@
   }
 
   /**
-   * Resolve any selected pins whose outbound URL is still unresolved
+   * Resolve any selected pins whose outbound URL or Video stream is still unresolved
    */
   async function resolveSelectedPinsLinks(selectedList) {
     if (!window.PinFlowDOM || !selectedList || selectedList.length === 0) return;
-    const unresolved = selectedList.filter(
-      (p) => !p.data.outboundUrl || p.data.outboundUrl.includes('pinterest.com/pin/')
-    );
-
-    if (unresolved.length === 0) return;
 
     await Promise.all(
-      unresolved.map(async (p) => {
-        if (p.data.pinId) {
-          const resolved = await window.PinFlowDOM.resolvePinOutboundUrl(p.data.pinId);
-          if (resolved) {
-            p.data.outboundUrl = resolved;
+      selectedList.map(async (p) => {
+        const pinId = p.data?.pinId;
+        if (!pinId) return;
+
+        // 1. Resolve outbound destination link
+        if (!p.data.outboundUrl || p.data.outboundUrl.includes('pinterest.com/pin/')) {
+          if (window.PinFlowDOM.resolvePinOutboundUrl) {
+            const resolved = await window.PinFlowDOM.resolvePinOutboundUrl(pinId);
+            if (resolved) p.data.outboundUrl = resolved;
+          }
+        }
+
+        // 2. Resolve 1080p MP4 Video stream if video pin
+        if (p.data.isVideo && !p.data.videoUrl) {
+          if (window.PinFlowDOM.resolvePinVideoUrl) {
+            const vUrl = await window.PinFlowDOM.resolvePinVideoUrl(pinId);
+            if (vUrl) {
+              p.data.videoUrl = vUrl;
+              p.data.originalImageUrl = vUrl;
+            }
           }
         }
       })

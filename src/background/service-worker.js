@@ -213,12 +213,13 @@ async function handleSingleDownload(pinData, customOptions = {}) {
     const settingsRes = await handleGetSettings();
     const settings = settingsRes.settings;
 
-    const imgUrl = pinData.originalImageUrl || pinData.highResImageUrl || pinData.thumbnailUrl;
-    if (!imgUrl) {
-      return { success: false, error: 'No valid image URL found on pin' };
+    const isVideo = !!(pinData.isVideo || (pinData.videoUrl && pinData.videoUrl.includes('.mp4')));
+    const mediaUrl = (isVideo && pinData.videoUrl) ? pinData.videoUrl : (pinData.originalImageUrl || pinData.highResImageUrl || pinData.thumbnailUrl);
+    if (!mediaUrl) {
+      return { success: false, error: 'No valid media URL found on pin' };
     }
 
-    const ext = getExtension(imgUrl, 'jpg');
+    const ext = isVideo ? 'mp4' : getExtension(mediaUrl, 'jpg');
     const folder = formatPattern(settings.folderPattern || 'Zumpey_Exports/{datetime}_{query}', {
       query: pinData.query || 'Single',
       board: pinData.boardName || 'Pins'
@@ -242,7 +243,7 @@ async function handleSingleDownload(pinData, customOptions = {}) {
     const fullPath = folder ? `${folder}/${filename}` : filename;
 
     const downloadId = await chrome.downloads.download({
-      url: imgUrl,
+      url: mediaUrl,
       filename: fullPath,
       saveAs: false,
       conflictAction: 'uniquify'
@@ -329,11 +330,12 @@ async function executeBatchQueue(sessionId, pins, folderName, settings, batchMet
     const indexStr = String(indexNum).padStart(3, '0');
     const titleSlug = sanitizeFilename(pin.title || pin.pinId || `Pin_${indexNum}`);
     
-    // Choose primary image URL (original HD preferred)
-    const primaryImgUrl = pin.originalImageUrl || pin.highResImageUrl || pin.thumbnailUrl;
-    const ext = getExtension(primaryImgUrl, 'jpg');
+    // Choose primary media URL (MP4 video preferred for video pins, HD image otherwise)
+    const isVideo = !!(pin.isVideo || (pin.videoUrl && pin.videoUrl.includes('.mp4')));
+    const primaryMediaUrl = (isVideo && pin.videoUrl) ? pin.videoUrl : (pin.originalImageUrl || pin.highResImageUrl || pin.thumbnailUrl);
+    const ext = isVideo ? 'mp4' : getExtension(primaryMediaUrl, 'jpg');
 
-    // Build filename from pattern (Default: {index} -> 001.jpg)
+    // Build filename from pattern (Default: {index} -> 001.jpg / 001.mp4)
     let fileNameOnly = '';
     if (settings.filenamePattern === '{index}') {
       fileNameOnly = `${indexStr}.${ext}`;
@@ -379,20 +381,21 @@ async function executeBatchQueue(sessionId, pins, folderName, settings, batchMet
     metadataRows.push({
       seqNumber: indexNum,
       fileName: fileNameOnly,
+      mediaType: isVideo ? 'Video (MP4)' : 'Image (HD)',
       pinTitle: pin.title || 'Untitled Pin',
       outboundUrl: finalOutboundUrl,
       pinUrl: pin.pinUrl || `https://www.pinterest.com/pin/${pin.pinId || ''}`,
-      originalImageUrl: primaryImgUrl,
+      originalImageUrl: primaryMediaUrl,
       pinDescription: pin.description || '',
       boardName: pin.boardName || batchMetadata.boardName || '',
       dateExtracted: extractedTime
     });
 
-    // Perform image download if enabled
-    if (settings.downloadImages && primaryImgUrl) {
+    // Perform media download if enabled
+    if (settings.downloadImages && primaryMediaUrl) {
       try {
         const downloadId = await chrome.downloads.download({
-          url: primaryImgUrl,
+          url: primaryMediaUrl,
           filename: fullImagePath,
           saveAs: false,
           conflictAction: 'uniquify'
@@ -461,10 +464,11 @@ function generateCSV(rows, includeColumns, includeHeaderRow = true) {
   const columnDefs = [
     { key: 'seqNumber', header: 'Sequence Number' },
     { key: 'fileName', header: 'File Name' },
+    { key: 'mediaType', header: 'Media Type' },
     { key: 'pinTitle', header: 'Pin Title' },
     { key: 'outboundUrl', header: 'Outbound / Destination Link' },
     { key: 'pinUrl', header: 'Pinterest Pin URL' },
-    { key: 'originalImageUrl', header: 'Original Image URL' },
+    { key: 'originalImageUrl', header: 'Media URL' },
     { key: 'pinDescription', header: 'Description' },
     { key: 'boardName', header: 'Board Name' },
     { key: 'dateExtracted', header: 'Date Extracted' }

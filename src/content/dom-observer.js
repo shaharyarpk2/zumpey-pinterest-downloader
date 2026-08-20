@@ -211,12 +211,33 @@
       originalImageUrl = getOriginalImageUrl(pin.image_large_url);
     }
 
+    // Video extraction
+    let isVideo = false;
+    let videoUrl = '';
+    if (pin.videos && pin.videos.video_list) {
+      isVideo = true;
+      const vl = pin.videos.video_list;
+      const videoEntry = vl.V_1080P || vl.V_720P || vl.V_EXP7 || vl.V_EXPMP4 || vl.V_HLSV4 || Object.values(vl)[0];
+      if (videoEntry && videoEntry.url) {
+        videoUrl = videoEntry.url;
+      }
+    } else if (pin.is_video || pin.story_pin_data?.pages?.[0]?.blocks?.[0]?.video) {
+      isVideo = true;
+      const vObj = pin.story_pin_data?.pages?.[0]?.blocks?.[0]?.video?.video_list;
+      if (vObj) {
+        const videoEntry = vObj.V_1080P || vObj.V_720P || vObj.V_EXP7 || Object.values(vObj)[0];
+        if (videoEntry && videoEntry.url) videoUrl = videoEntry.url;
+      }
+    }
+
     return {
       outboundUrl,
       title: pin.title || pin.grid_title || pin.rich_summary?.display_name || '',
       description: pin.description || pin.rich_summary?.display_description || '',
       pinId: pin.id ? String(pin.id) : null,
-      originalImageUrl
+      originalImageUrl,
+      isVideo,
+      videoUrl
     };
   }
 
@@ -453,6 +474,27 @@
       }
     }
 
+    // Video detection & extraction
+    let isVideo = reactData?.isVideo || false;
+    let videoUrl = reactData?.videoUrl || '';
+
+    const videoElem = pinElement.querySelector('video');
+    if (videoElem) {
+      isVideo = true;
+      if (videoElem.src && videoElem.src.startsWith('http')) {
+        videoUrl = videoElem.src;
+      } else {
+        const sourceElem = videoElem.querySelector('source');
+        if (sourceElem && sourceElem.src && sourceElem.src.startsWith('http')) {
+          videoUrl = sourceElem.src;
+        }
+      }
+    }
+
+    if (!isVideo && pinElement.querySelector('[data-test-id="video-player"], [aria-label*="video" i], svg[aria-label*="video" i]')) {
+      isVideo = true;
+    }
+
     const context = getPageContext();
 
     return {
@@ -464,6 +506,8 @@
       fallbackImageUrl,
       thumbnailUrl: rawImgSrc,
       outboundUrl,
+      isVideo,
+      videoUrl,
       boardName: context.boardName || '',
       query: context.query || '',
       dateExtracted: new Date().toLocaleString(),
@@ -471,57 +515,62 @@
     };
   }
 
+  const resolvedVideoCache = new Map();
+
   /**
-   * Locate all pin card elements in the current viewport/page
+   * Asynchronously resolve highest quality progressive MP4 (1080p / 720p) via pin page data
    */
-  function findPinCardElements() {
-    const cards = [];
-
-    // 1. Prioritize direct pin cards
-    const pinElements = document.querySelectorAll(
-      'div[data-test-id="pin"], div[data-test-id="pin-wrapper"], div[data-test-id="pinrep-source"]'
-    );
-    pinElements.forEach((el) => {
-      if (el.querySelector('img') && !cards.includes(el)) {
-        cards.push(el);
-      }
-    });
-
-    // 2. Also check grid items / list items and extract their inner pin card
-    const gridItems = document.querySelectorAll('div[data-grid-item="true"], div[role="listitem"]');
-    gridItems.forEach((gridItem) => {
-      const innerCard =
-        gridItem.querySelector('div[data-test-id="pin"], div[data-test-id="pin-wrapper"]') ||
-        gridItem.querySelector('img')?.closest('div');
-      if (innerCard && !cards.includes(innerCard)) {
-        cards.push(innerCard);
-      }
-    });
-
-    // 3. Fallback search if still empty
-    if (cards.length === 0) {
-      const allImgs = document.querySelectorAll('img[src*="pinimg.com"]');
-      allImgs.forEach((img) => {
-        const pinContainer = img.closest('div[data-test-id="pin"], div[role="listitem"], a[href*="/pin/"]');
-        if (pinContainer && !cards.includes(pinContainer)) {
-          cards.push(pinContainer);
-        }
-      });
+  async function resolvePinVideoUrl(pinId) {
+    if (!pinId) return null;
+    if (resolvedVideoCache.has(pinId)) {
+      return resolvedVideoCache.get(pinId);
     }
 
-    return cards;
+    try {
+      const resp = await fetch(`/pin/${pinId}/`, {
+        headers: {
+          'Accept': 'text/html,application/xhtml+xml'
+        }
+      });
+      const html = await resp.text();
+
+      // Check for progressive MP4 video streams in order of quality
+      const patterns = [
+        /"(?:V_1080P|V_720P|V_EXP7|V_EXPMP4)":\s*\{\s*"url":\s*"(https?:[^\"]+)"/i,
+        /"video_list":\s*\{\s*"(?:V_1080P|V_720P|V_EXP7)":\s*\{\s*"url":\s*"(https?:[^\"]+)"/i,
+        /"(?:url)":"(https?:\\\/\\\/v1?\.pinimg\.com\\\/videos\\\/[^\"]+\.mp4[^\"]*)"/i,
+        /"(https?:\\\/\\\/v1?\.pinimg\.com\\\/videos\\\/[^\"]+\.mp4[^\"]*)"/i
+      ];
+
+      for (const pattern of patterns) {
+        const match = html.match(pattern);
+        if (match && match[1]) {
+          let clean = match[1].replace(/\\u0026/g, '&').replace(/\\\//g, '/');
+          if (clean.includes('%3A%2F%2F')) clean = decodeURIComponent(clean);
+          if (clean.startsWith('http')) {
+            resolvedVideoCache.set(pinId, clean);
+            return clean;
+          }
+        }
+      }
+    } catch (err) {
+      console.warn('[Zumpey.com] Video resolver error for', pinId, err);
+    }
+
+    resolvedVideoCache.set(pinId, null);
+    return null;
   }
 
   /**
-   * Scan page and emit new pin cards to subscribers
+   * Scan DOM for newly added pins
    */
   function scanAndNotify() {
-    const pinCards = findPinCardElements();
+    const cards = findPinCardElements();
     const newCards = [];
 
-    pinCards.forEach((card) => {
-      if (!processedElements.has(card)) {
-        processedElements.add(card);
+    cards.forEach((card) => {
+      if (!observedElements.has(card)) {
+        observedElements.add(card);
         newCards.push(card);
       }
     });
@@ -578,6 +627,7 @@
     extractOutboundUrlFromDOM,
     extractFromReactFiber,
     resolvePinOutboundUrl,
+    resolvePinVideoUrl,
     getOriginalImageUrl,
     getFallbackImageUrl
   };
