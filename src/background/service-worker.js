@@ -642,11 +642,11 @@ chrome.downloads.onChanged.addListener(async (delta) => {
 });
 
 /**
- * Handle Auto-Update Check against GitHub and Chrome runtime
+ * Handle Auto-Update Check against GitHub raw manifest and releases
  */
 async function handleCheckUpdate() {
   const currentManifest = chrome.runtime.getManifest();
-  const currentVersion = currentManifest.version;
+  const currentVersion = currentManifest.version || '1.0.1';
 
   // Request Chrome native update check
   if (chrome.runtime.requestUpdateCheck) {
@@ -662,7 +662,33 @@ async function handleCheckUpdate() {
     }
   }
 
-  // Fetch latest version from GitHub API
+  // 1. Fetch live manifest from GitHub raw endpoint (zero cache latency)
+  try {
+    const rawRes = await fetch(
+      `https://raw.githubusercontent.com/shaharyarpk2/zumpey-pinterest-downloader/main/manifest.json?t=${Date.now()}`,
+      { cache: 'no-store' }
+    );
+    if (rawRes.ok) {
+      const manifestData = await rawRes.json();
+      const latestVer = manifestData.version;
+      if (latestVer) {
+        const isNewer = compareVersions(latestVer, currentVersion) > 0;
+        return {
+          success: true,
+          currentVersion,
+          latestVersion: latestVer,
+          hasUpdate: isNewer,
+          releaseUrl: 'https://github.com/shaharyarpk2/zumpey-pinterest-downloader',
+          downloadZipUrl: 'https://raw.githubusercontent.com/shaharyarpk2/zumpey-pinterest-downloader/main/dist/zumpey.zip',
+          releaseNotes: `🔥 Zumpey.com v${latestVer} Release Notes:\n• 🎬 Pinterest 1080p MP4 Video & Reel Downloader\n• 🎮 Real-time Pause / Resume and Cancel Download Controls\n• ⚡ 2-Step "Fetch Full Account / Board" workflow with badge indexing\n• 📊 Default links.xlsx filename with customizable settings option\n• 📁 Custom Download Output folder structure support`
+        };
+      }
+    }
+  } catch (err) {
+    console.warn('[Zumpey.com] GitHub raw manifest check failed:', err);
+  }
+
+  // 2. Fallback to GitHub Releases API
   try {
     const res = await fetch('https://api.github.com/repos/shaharyarpk2/zumpey-pinterest-downloader/releases/latest', {
       headers: { 'Accept': 'application/vnd.github.v3+json' }
@@ -676,12 +702,13 @@ async function handleCheckUpdate() {
         currentVersion,
         latestVersion: latestTag || currentVersion,
         hasUpdate: isNewer,
-        releaseUrl: data.html_url,
-        releaseNotes: data.body
+        releaseUrl: data.html_url || 'https://github.com/shaharyarpk2/zumpey-pinterest-downloader',
+        downloadZipUrl: 'https://raw.githubusercontent.com/shaharyarpk2/zumpey-pinterest-downloader/main/dist/zumpey.zip',
+        releaseNotes: data.body || 'New features and enhancements available.'
       };
     }
   } catch (err) {
-    console.warn('[Zumpey.com] GitHub release check failed:', err);
+    console.warn('[Zumpey.com] GitHub release check fallback failed:', err);
   }
 
   return { success: true, currentVersion, latestVersion: currentVersion, hasUpdate: false };

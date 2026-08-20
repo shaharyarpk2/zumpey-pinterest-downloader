@@ -271,7 +271,7 @@ document.addEventListener('DOMContentLoaded', async () => {
             updateNotesContent.textContent = res.releaseNotes || 'New features and performance updates available!';
           }
           if (btnDownloadUpdateZip) {
-            btnDownloadUpdateZip.href = res.releaseUrl || `https://github.com/shaharyarpk2/zumpey-pinterest-downloader/releases`;
+            btnDownloadUpdateZip.href = res.downloadZipUrl || res.releaseUrl || `https://github.com/shaharyarpk2/zumpey-pinterest-downloader/raw/main/dist/zumpey.zip`;
           }
           if (isManual) showSaveToast(`🔥 New Update (v${latestVer}) is available!`);
         } else {
