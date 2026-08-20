@@ -35,6 +35,10 @@
           <svg viewBox="0 0 24 24" fill="currentColor"><path d="M4 6H2v14c0 1.1.9 2 2 2h14v-2H4V6zm16-4H8c-1.1 0-2 .9-2 2v12c0 1.1.9 2 2 2h12c1.1 0 2-.9 2-2V4c0-1.1-.9-2-2-2zm0 14H8V4h12v12z"/></svg>
           On-Page Toolbar & UI
         </a>
+        <a href="#section-updates" class="nav-item">
+          <svg viewBox="0 0 24 24" fill="currentColor"><path d="M12 4V1L8 5l4 4V6c3.31 0 6 2.69 6 6 0 1.01-.25 1.97-.7 2.8l1.46 1.46C19.54 15.03 20 13.57 20 12c0-4.42-3.58-8-8-8zm0 14c-3.31 0-6-2.69-6-6 0-1.01.25-1.97.7-2.8L5.24 7.74C4.46 8.97 4 10.43 4 12c0 4.42 3.58 8 8 8v3l4-4-4-4v3z"/></svg>
+          Check for Updates
+        </a>
       </nav>
 
       <div class="sidebar-footer">
@@ -264,6 +268,58 @@
                 <span class="slider"></span>
               </label>
             </div>
+          </div>
+        </section>
+
+        <!-- Section 5: Version & Update Center -->
+        <section id="section-updates" class="settings-card">
+          <div class="card-header">
+            <h3>⚡ Version & GitHub Cloud Update Center</h3>
+            <p>Check for newer versions, review changelog release notes, and update Zumpey.com with 1-click.</p>
+          </div>
+
+          <div class="version-banner-grid">
+            <div class="version-stat-card">
+              <span class="v-label">Currently Installed:</span>
+              <div class="v-value-wrap">
+                <span class="v-version" id="installed-version-val">v1.0.1</span>
+                <span class="v-badge installed">Active</span>
+              </div>
+            </div>
+
+            <div class="version-stat-card">
+              <span class="v-label">Latest Cloud Version:</span>
+              <div class="v-value-wrap">
+                <span class="v-version" id="cloud-version-val">Checking...</span>
+                <span class="v-badge" id="cloud-version-badge">Syncing</span>
+              </div>
+            </div>
+          </div>
+
+          <div id="update-alert-box" class="update-alert-box" style="display: none;">
+            <div class="update-alert-header">
+              <span class="update-pulse-dot"></span>
+              <strong id="update-alert-title">🔥 New Update Available!</strong>
+            </div>
+            <div class="update-notes-box" id="update-notes-content">
+              Loading release details...
+            </div>
+            <div class="update-alert-actions">
+              <a href="#" id="btn-download-update-zip" class="btn-primary" target="_blank">
+                <svg viewBox="0 0 24 24" width="16" height="16" fill="currentColor"><path d="M19.35 10.04C18.67 6.59 15.64 4 12 4 9.11 4 6.6 5.64 5.35 8.04 2.34 8.36 0 10.91 0 14c0 3.31 2.69 6 6 6h13c2.76 0 5-2.24 5-5 0-2.64-2.05-4.78-4.65-4.96zM17 13l-5 5-5-5h3V9h4v4h3z"/></svg>
+                Download Update ZIP
+              </a>
+              <button type="button" id="btn-reload-runtime" class="btn-secondary">
+                🔄 Reload Extension Now
+              </button>
+            </div>
+          </div>
+
+          <div class="form-group" style="margin-top: 16px;">
+            <button type="button" id="btn-check-updates-now" class="btn-primary">
+              <svg viewBox="0 0 24 24" width="16" height="16" fill="currentColor"><path d="M12 4V1L8 5l4 4V6c3.31 0 6 2.69 6 6 0 1.01-.25 1.97-.7 2.8l1.46 1.46C19.54 15.03 20 13.57 20 12c0-4.42-3.58-8-8-8zm0 14c-3.31 0-6-2.69-6-6 0-1.01.25-1.97.7-2.8L5.24 7.74C4.46 8.97 4 10.43 4 12c0 4.42 3.58 8 8 8v3l4-4-4-4v3z"/></svg>
+              Check for Updates Now
+            </button>
           </div>
         </section>
 
