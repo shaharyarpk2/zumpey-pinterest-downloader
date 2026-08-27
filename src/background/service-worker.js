@@ -84,10 +84,6 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
       handleBatchDownload(message.pins, message.batchMetadata, sender?.tab?.id).then(sendResponse);
       return true;
 
-    case 'CHECK_UPDATE':
-      handleCheckUpdate().then(sendResponse);
-      return true;
-
     case 'GET_DOWNLOAD_STATUS':
       sendResponse({ activeSessions: Array.from(activeSessions.values()) });
       return true;
@@ -672,90 +668,4 @@ chrome.downloads.onChanged.addListener(async (delta) => {
     pendingFallbacks.delete(delta.id);
   }
 });
-
-/**
- * Handle Auto-Update Check against GitHub raw manifest and releases
- */
-async function handleCheckUpdate() {
-  const currentManifest = chrome.runtime.getManifest();
-  const currentVersion = currentManifest.version || '1.0.1';
-
-  // Request Chrome native update check
-  if (chrome.runtime.requestUpdateCheck) {
-    try {
-      chrome.runtime.requestUpdateCheck((status, details) => {
-        console.log('[Zumpey.com] Native update check status:', status, details);
-        if (status === 'update_available') {
-          chrome.runtime.reload();
-        }
-      });
-    } catch (e) {
-      // Ignore if not supported
-    }
-  }
-
-  // 1. Fetch live manifest from GitHub raw endpoint (zero cache latency)
-  try {
-    const rawRes = await fetch(
-      `https://raw.githubusercontent.com/shaharyarpk2/zumpey-pinterest-downloader/main/manifest.json?t=${Date.now()}`,
-      { cache: 'no-store' }
-    );
-    if (rawRes.ok) {
-      const manifestData = await rawRes.json();
-      const latestVer = manifestData.version;
-      if (latestVer) {
-        const isNewer = compareVersions(latestVer, currentVersion) > 0;
-        return {
-          success: true,
-          currentVersion,
-          latestVersion: latestVer,
-          hasUpdate: isNewer,
-          releaseUrl: 'https://github.com/shaharyarpk2/zumpey-pinterest-downloader',
-          downloadZipUrl: 'https://github.com/shaharyarpk2/zumpey-pinterest-downloader/archive/refs/heads/main.zip',
-          releaseNotes: `🔥 Zumpey.com v${latestVer} Release Notes:\n• 📦 1-Click ZIP Archive Direct Download Mode\n• 🎬 Pinterest 1080p MP4 Video & Reel Downloader\n• 🎮 Real-time Pause / Resume and Cancel Controls\n• ⚡ 2-Step "Fetch Full Account / Board" workflow with badge indexing\n• 📊 Default links.xlsx filename with customizable settings option\n• 📁 Custom Download Output folder structure support`
-        };
-      }
-    }
-  } catch (err) {
-    console.warn('[Zumpey.com] GitHub raw manifest check failed:', err);
-  }
-
-  // 2. Fallback to GitHub Releases API
-  try {
-    const res = await fetch('https://api.github.com/repos/shaharyarpk2/zumpey-pinterest-downloader/releases/latest', {
-      headers: { 'Accept': 'application/vnd.github.v3+json' }
-    });
-    if (res.ok) {
-      const data = await res.json();
-      const latestTag = (data.tag_name || '').replace(/^v/, '');
-      const isNewer = compareVersions(latestTag, currentVersion) > 0;
-      return {
-        success: true,
-        currentVersion,
-        latestVersion: latestTag || currentVersion,
-        hasUpdate: isNewer,
-        releaseUrl: data.html_url || 'https://github.com/shaharyarpk2/zumpey-pinterest-downloader',
-        downloadZipUrl: 'https://github.com/shaharyarpk2/zumpey-pinterest-downloader/archive/refs/heads/main.zip',
-        releaseNotes: data.body || 'New features and enhancements available.'
-      };
-    }
-  } catch (err) {
-    console.warn('[Zumpey.com] GitHub release check fallback failed:', err);
-  }
-
-  return { success: true, currentVersion, latestVersion: currentVersion, hasUpdate: false };
-}
-
-function compareVersions(v1, v2) {
-  if (!v1 || !v2) return 0;
-  const p1 = v1.split('.').map(Number);
-  const p2 = v2.split('.').map(Number);
-  for (let i = 0; i < Math.max(p1.length, p2.length); i++) {
-    const num1 = p1[i] || 0;
-    const num2 = p2[i] || 0;
-    if (num1 > num2) return 1;
-    if (num1 < num2) return -1;
-  }
-  return 0;
-}
 

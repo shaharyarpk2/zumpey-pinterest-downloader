@@ -243,79 +243,14 @@ document.addEventListener('DOMContentLoaded', async () => {
     });
   });
 
-  // 7. Version & Update Center Logic
+  // 7. About & Brand Info
   const installedVersionVal = document.getElementById('installed-version-val');
-  const cloudVersionVal = document.getElementById('cloud-version-val');
-  const cloudVersionBadge = document.getElementById('cloud-version-badge');
-  const updateAlertBox = document.getElementById('update-alert-box');
-  const updateNotesContent = document.getElementById('update-notes-content');
-  const btnDownloadUpdateZip = document.getElementById('btn-download-update-zip');
-  const btnReloadRuntime = document.getElementById('btn-reload-runtime');
-  const btnCheckUpdatesNow = document.getElementById('btn-check-updates-now');
-
-  async function checkUpdates(isManual = false) {
-    if (btnCheckUpdatesNow) {
-      btnCheckUpdatesNow.disabled = true;
-      btnCheckUpdatesNow.innerHTML = `<span>Checking GitHub Cloud...</span>`;
-    }
-
-    try {
-      const manifest = chrome.runtime.getManifest ? chrome.runtime.getManifest() : { version: '1.0.1' };
-      const currentVer = manifest.version || '1.0.1';
-      if (installedVersionVal) installedVersionVal.textContent = `v${currentVer}`;
-
-      const res = await chrome.runtime.sendMessage({ action: 'CHECK_UPDATE' });
-      if (res && res.success) {
-        const latestVer = res.latestVersion || currentVer;
-        if (cloudVersionVal) cloudVersionVal.textContent = `v${latestVer}`;
-
-        if (res.hasUpdate) {
-          if (cloudVersionBadge) {
-            cloudVersionBadge.className = 'v-badge update-ready';
-            cloudVersionBadge.textContent = 'Update Ready';
-          }
-          if (updateAlertBox) updateAlertBox.style.display = 'flex';
-          if (updateNotesContent) {
-            updateNotesContent.textContent = res.releaseNotes || 'New features and performance updates available!';
-          }
-          if (btnDownloadUpdateZip) {
-            btnDownloadUpdateZip.href = res.downloadZipUrl || res.releaseUrl || `https://github.com/shaharyarpk2/zumpey-pinterest-downloader/raw/main/dist/zumpey.zip`;
-          }
-          if (isManual) showSaveToast(`🔥 New Update (v${latestVer}) is available!`);
-        } else {
-          if (cloudVersionBadge) {
-            cloudVersionBadge.className = 'v-badge up-to-date';
-            cloudVersionBadge.textContent = 'Up to date';
-          }
-          if (updateAlertBox) updateAlertBox.style.display = 'none';
-          if (isManual) showSaveToast('Your extension is fully up to date!');
-        }
-      }
-    } catch (err) {
-      console.warn('Update check failed:', err);
-    } finally {
-      if (btnCheckUpdatesNow) {
-        btnCheckUpdatesNow.disabled = false;
-        btnCheckUpdatesNow.innerHTML = `
-          <svg viewBox="0 0 24 24" width="16" height="16" fill="currentColor"><path d="M12 4V1L8 5l4 4V6c3.31 0 6 2.69 6 6 0 1.01-.25 1.97-.7 2.8l1.46 1.46C19.54 15.03 20 13.57 20 12c0-4.42-3.58-8-8-8zm0 14c-3.31 0-6-2.69-6-6 0-1.01.25-1.97.7-2.8L5.24 7.74C4.46 8.97 4 10.43 4 12c0 4.42 3.58 8 8 8v3l4-4-4-4v3z"/></svg>
-          Check for Updates Now
-        `;
-      }
-    }
-  }
-
-  if (btnCheckUpdatesNow) {
-    btnCheckUpdatesNow.addEventListener('click', () => checkUpdates(true));
-  }
-
-  if (btnReloadRuntime) {
-    btnReloadRuntime.addEventListener('click', () => {
-      chrome.runtime.reload();
-    });
+  if (installedVersionVal) {
+    const manifest = chrome.runtime.getManifest ? chrome.runtime.getManifest() : { version: '1.0.0' };
+    installedVersionVal.textContent = `v${manifest.version || '1.0.0'}`;
   }
 
   // Initialize
   await loadSettings();
-  checkUpdates(false);
 });
 
