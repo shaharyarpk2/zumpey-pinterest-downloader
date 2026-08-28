@@ -21,6 +21,7 @@
     },
     isDownloading: false,
     isHarvesting: false,
+    isHarvestPaused: false,
     harvestInterval: null,
     floatingBarMinimized: false
   };
@@ -714,12 +715,45 @@
   // Full Board / Full Account Auto-Fetching & Continuous Scraper Engine
   // =========================================================================
 
+  function togglePauseAutoHarvest() {
+    if (!state.isHarvesting) return;
+
+    const pauseBtn = document.getElementById('harvest-btn-pause');
+    const spinner = document.getElementById('harvest-hud-spinner');
+    const statusSpan = document.getElementById('harvest-hud-status');
+
+    if (!state.isHarvestPaused) {
+      state.isHarvestPaused = true;
+      if (pauseBtn) {
+        pauseBtn.className = 'harvest-btn resume';
+        pauseBtn.innerHTML = '▶ Resume';
+      }
+      if (spinner) spinner.classList.add('paused');
+      if (statusSpan) {
+        statusSpan.innerHTML = `<span style="color: #fbbf24; font-weight: 700;">⏸ Auto-fetch Paused (${state.selectedPins.length} pins collected)</span>`;
+      }
+      showToast('Auto-fetching paused.', 'info', 2000);
+    } else {
+      state.isHarvestPaused = false;
+      if (pauseBtn) {
+        pauseBtn.className = 'harvest-btn pause';
+        pauseBtn.innerHTML = '⏸ Pause';
+      }
+      if (spinner) spinner.classList.remove('paused');
+      if (statusSpan) {
+        statusSpan.innerHTML = `Auto-scrolling & fetching: <strong id="harvest-hud-count">${state.selectedPins.length} pins</strong>`;
+      }
+      showToast('Resuming auto-fetch...', 'info', 1500);
+    }
+  }
+
   function startAutoHarvest(customTitle = '') {
     if (state.isHarvesting) {
       stopAutoHarvest();
       return;
     }
     state.isHarvesting = true;
+    state.isHarvestPaused = false;
 
     const context = window.PinFlowDOM ? window.PinFlowDOM.getPageContext() : {};
     let titleText = customTitle;
@@ -751,6 +785,11 @@
         return;
       }
 
+      // If user paused, skip scrolling and harvesting
+      if (state.isHarvestPaused) {
+        return;
+      }
+
       // Collect all visible pins into selection
       selectAllVisibleSilently();
       const currentPinCount = state.selectedPins.length;
@@ -779,7 +818,7 @@
         if (staleCount % 3 === 0) {
           window.scrollBy({ top: -140, behavior: 'smooth' });
           setTimeout(() => {
-            if (state.isHarvesting) {
+            if (state.isHarvesting && !state.isHarvestPaused) {
               window.scrollBy({ top: 900, behavior: 'smooth' });
               window.dispatchEvent(new Event('scroll'));
             }
@@ -810,10 +849,20 @@
   function stopAutoHarvest() {
     if (!state.isHarvesting) return;
     state.isHarvesting = false;
+    state.isHarvestPaused = false;
     if (state.harvestInterval) {
       clearInterval(state.harvestInterval);
       state.harvestInterval = null;
     }
+
+    const pauseBtn = document.getElementById('harvest-btn-pause');
+    if (pauseBtn) {
+      pauseBtn.className = 'harvest-btn pause';
+      pauseBtn.innerHTML = '⏸ Pause';
+    }
+
+    const spinner = document.getElementById('harvest-hud-spinner');
+    if (spinner) spinner.classList.remove('paused');
 
     hideHarvestHUD();
     selectAllVisibleSilently();
@@ -833,19 +882,21 @@
       hud.id = 'zumpey-harvest-hud';
       hud.innerHTML = `
         <div class="harvest-header">
-          <div class="harvest-spinner"></div>
+          <div class="harvest-spinner" id="harvest-hud-spinner"></div>
           <div class="harvest-info">
             <span class="harvest-title" id="harvest-hud-title">${escapeHtml(title)}</span>
             <span class="harvest-stats" id="harvest-hud-status">Auto-scrolling & fetching: <strong id="harvest-hud-count">0 pins</strong></span>
           </div>
         </div>
         <div class="harvest-actions">
-          <button id="harvest-btn-stop" class="harvest-btn primary">⏹ Finish Fetching (<span id="harvest-btn-count">0</span>)</button>
-          <button id="harvest-btn-cancel" class="harvest-btn secondary">✖ Cancel</button>
+          <button id="harvest-btn-pause" class="harvest-btn pause" title="Pause / Resume Auto-Scrolling">⏸ Pause</button>
+          <button id="harvest-btn-stop" class="harvest-btn primary" title="Stop & Keep All Collected Pins">⏹ Stop & Keep (<span id="harvest-btn-count">0</span>)</button>
+          <button id="harvest-btn-cancel" class="harvest-btn secondary" title="Cancel and Clear">✖ Cancel</button>
         </div>
       `;
       document.body.appendChild(hud);
 
+      document.getElementById('harvest-btn-pause').addEventListener('click', togglePauseAutoHarvest);
       document.getElementById('harvest-btn-stop').addEventListener('click', () => {
         stopAutoHarvest();
       });
@@ -857,6 +908,15 @@
 
     const titleElem = document.getElementById('harvest-hud-title');
     if (titleElem) titleElem.textContent = title;
+
+    const pauseBtn = document.getElementById('harvest-btn-pause');
+    if (pauseBtn) {
+      pauseBtn.className = 'harvest-btn pause';
+      pauseBtn.innerHTML = '⏸ Pause';
+    }
+
+    const spinner = document.getElementById('harvest-hud-spinner');
+    if (spinner) spinner.classList.remove('paused');
 
     hud.classList.add('active');
     updateHarvestHUD();
