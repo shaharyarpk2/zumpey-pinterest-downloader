@@ -1,7 +1,7 @@
 {
   "manifest_version": 3,
   "name": "Zumpey.com - Pinterest Batch Extractor & Downloader",
-  "version": "1.0.0",
+  "version": "1.1.0",
   "description": "Extract 1080p MP4 videos, original HD images, destination links & export entire Pinterest boards/accounts to Excel with 1-click.",
   "author": "Zumpey.com",
   "homepage_url": "https://zumpey.com",

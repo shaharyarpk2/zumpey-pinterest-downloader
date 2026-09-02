@@ -21,6 +21,7 @@
     },
     isDownloading: false,
     isHarvesting: false,
+    isHarvestPaused: false,
     harvestInterval: null,
     floatingBarMinimized: false
   };
@@ -165,7 +166,25 @@
     actionsWrapper.appendChild(copyLinkBtn);
     pinElement.appendChild(actionsWrapper);
 
-    // 3. Selection Event Listener on Badge
+    // 3. Check if pin was previously saved in state (persistent selection)
+    if (pinData) {
+      const existing = state.selectedPins.find((p) => {
+        if (!p.data) return false;
+        if (pinData.pinId && p.data.pinId && p.data.pinId === pinData.pinId) return true;
+        if (pinData.originalImageUrl && p.data.originalImageUrl && p.data.originalImageUrl === pinData.originalImageUrl) return true;
+        if (pinData.pinUrl && p.data.pinUrl && p.data.pinUrl === pinData.pinUrl) return true;
+        return false;
+      });
+
+      if (existing) {
+        existing.element = pinElement;
+        pinElement.classList.add('pinflow-selected');
+        orderBadge.classList.add('active');
+        orderBadge.textContent = `#${existing.index}`;
+      }
+    }
+
+    // 4. Selection Event Listener on Badge
     badgeWrapper.addEventListener('click', (e) => {
       e.stopPropagation();
       e.preventDefault();
@@ -252,6 +271,65 @@
   }
 
   /**
+   * Save current selected pins into chrome.storage.local for persistence across page refreshes
+   */
+  async function persistSelections() {
+    try {
+      const serializable = state.selectedPins.map((item, idx) => ({
+        data: {
+          pinId: item.data?.pinId,
+          pinUrl: item.data?.pinUrl,
+          title: item.data?.title,
+          description: item.data?.description,
+          originalImageUrl: item.data?.originalImageUrl,
+          fallbackImageUrl: item.data?.fallbackImageUrl,
+          thumbnailUrl: item.data?.thumbnailUrl,
+          outboundUrl: item.data?.outboundUrl,
+          isVideo: !!item.data?.isVideo,
+          videoUrl: item.data?.videoUrl,
+          boardName: item.data?.boardName,
+          query: item.data?.query,
+          dateExtracted: item.data?.dateExtracted
+        },
+        index: idx + 1
+      }));
+      await chrome.storage.local.set({ 'zumpey_persisted_selections': serializable });
+    } catch (e) {
+      console.warn('[Zumpey.com] Error persisting selections:', e);
+    }
+  }
+
+  /**
+   * Restore persistent selections from storage
+   */
+  async function restoreSavedSelections() {
+    try {
+      const res = await chrome.storage.local.get('zumpey_persisted_selections');
+      const saved = res?.zumpey_persisted_selections;
+      if (saved && Array.isArray(saved) && saved.length > 0) {
+        state.selectedPins = saved.map((item) => ({
+          element: null,
+          data: item.data,
+          index: item.index
+        }));
+
+        // Reconnect any already rendered DOM elements
+        if (window.PinFlowDOM) {
+          const allCards = window.PinFlowDOM.findPinCardElements();
+          allCards.forEach((card) => {
+            processPinCard(card);
+          });
+        }
+
+        renumberSelectionBadges();
+        updateFloatingBar();
+      }
+    } catch (e) {
+      console.warn('[Zumpey.com] Error restoring saved selections:', e);
+    }
+  }
+
+  /**
    * Toggle pin selection & maintain strict contiguous sequence order (#1, #2, ...)
    */
   function togglePinSelection(pinElement) {
@@ -289,6 +367,7 @@
 
     renumberSelectionBadges();
     updateFloatingBar();
+    persistSelections();
   }
 
   /**
@@ -320,7 +399,7 @@
 
     allCards.forEach((card) => {
       processPinCard(card);
-      const isAlreadySelected = state.selectedPins.some((p) => p.element === card);
+      const isAlreadySelected = state.selectedPins.some((p) => p.element === card || (p.data?.pinId && p.data.pinId === card.dataset?.pinflowPinId));
       if (!isAlreadySelected) {
         const pinData = window.PinFlowDOM.extractPinData(card);
         if (pinData) {
@@ -343,6 +422,7 @@
 
     renumberSelectionBadges();
     updateFloatingBar();
+    persistSelections();
     if (showToastMsg) {
       showToast(`Selected ${state.selectedPins.length} pins.`, 'info');
     }
@@ -355,7 +435,7 @@
   /**
    * Clear all selected pins
    */
-  function clearSelection() {
+  async function clearSelection() {
     state.selectedPins.forEach((item) => {
       if (item.element) {
         item.element.classList.remove('pinflow-selected');
@@ -368,6 +448,10 @@
     });
 
     state.selectedPins = [];
+    try {
+      await chrome.storage.local.remove('zumpey_persisted_selections');
+    } catch (e) {}
+
     updateFloatingBar();
     showToast('Selection cleared.', 'info', 1500);
   }
@@ -631,12 +715,45 @@
   // Full Board / Full Account Auto-Fetching & Continuous Scraper Engine
   // =========================================================================
 
+  function togglePauseAutoHarvest() {
+    if (!state.isHarvesting) return;
+
+    const pauseBtn = document.getElementById('harvest-btn-pause');
+    const spinner = document.getElementById('harvest-hud-spinner');
+    const statusSpan = document.getElementById('harvest-hud-status');
+
+    if (!state.isHarvestPaused) {
+      state.isHarvestPaused = true;
+      if (pauseBtn) {
+        pauseBtn.className = 'harvest-btn resume';
+        pauseBtn.innerHTML = '▶ Resume';
+      }
+      if (spinner) spinner.classList.add('paused');
+      if (statusSpan) {
+        statusSpan.innerHTML = `<span style="color: #fbbf24; font-weight: 700;">⏸ Auto-fetch Paused (${state.selectedPins.length} pins collected)</span>`;
+      }
+      showToast('Auto-fetching paused.', 'info', 2000);
+    } else {
+      state.isHarvestPaused = false;
+      if (pauseBtn) {
+        pauseBtn.className = 'harvest-btn pause';
+        pauseBtn.innerHTML = '⏸ Pause';
+      }
+      if (spinner) spinner.classList.remove('paused');
+      if (statusSpan) {
+        statusSpan.innerHTML = `Auto-scrolling & fetching: <strong id="harvest-hud-count">${state.selectedPins.length} pins</strong>`;
+      }
+      showToast('Resuming auto-fetch...', 'info', 1500);
+    }
+  }
+
   function startAutoHarvest(customTitle = '') {
     if (state.isHarvesting) {
       stopAutoHarvest();
       return;
     }
     state.isHarvesting = true;
+    state.isHarvestPaused = false;
 
     const context = window.PinFlowDOM ? window.PinFlowDOM.getPageContext() : {};
     let titleText = customTitle;
@@ -654,7 +771,9 @@
     showToast(`Started auto-fetching pins. Scrolling through feed...`, 'info', 2500);
 
     let lastScrollY = window.scrollY;
+    let lastPinCount = state.selectedPins.length;
     let staleCount = 0;
+    const MAX_STALE_ATTEMPTS = 18; // 12-15 seconds of patient waiting for slow connections
 
     // Initial immediate collect
     selectAllVisibleSilently();
@@ -666,39 +785,84 @@
         return;
       }
 
+      // If user paused, skip scrolling and harvesting
+      if (state.isHarvestPaused) {
+        return;
+      }
+
       // Collect all visible pins into selection
       selectAllVisibleSilently();
+      const currentPinCount = state.selectedPins.length;
       updateHarvestHUD();
 
-      // Scroll smoothly down
-      window.scrollBy({ top: 850, behavior: 'smooth' });
+      // Check if new pins were discovered
+      const hasNewPins = currentPinCount > lastPinCount;
+      if (hasNewPins) {
+        lastPinCount = currentPinCount;
+        staleCount = 0;
+        const statusSpan = document.getElementById('harvest-hud-status');
+        if (statusSpan) {
+          statusSpan.innerHTML = `Auto-scrolling & fetching: <strong id="harvest-hud-count">${currentPinCount} pins</strong>`;
+        }
+      }
 
-      // Check if end of page reached or slow connection loading
+      // Check scroll progress and bottom boundaries
       const currentScrollY = window.scrollY;
-      const atBottom = window.innerHeight + window.scrollY >= (document.documentElement.scrollHeight - 140);
+      const atBottom = window.innerHeight + window.scrollY >= (document.documentElement.scrollHeight - 120);
+      const isScrollStuck = Math.abs(currentScrollY - lastScrollY) < 15;
 
-      if (atBottom || Math.abs(currentScrollY - lastScrollY) < 15) {
+      if (atBottom || isScrollStuck || !hasNewPins) {
         staleCount++;
-        // Allow up to 7 ticks (approx 4.2s) to handle slower network buffering
-        if (staleCount >= 7) {
-          // Finished entire board / account!
+
+        // Micro-jiggle scroll to trigger Pinterest's React Virtualized list & IntersectionObserver
+        if (staleCount % 3 === 0) {
+          window.scrollBy({ top: -140, behavior: 'smooth' });
+          setTimeout(() => {
+            if (state.isHarvesting && !state.isHarvestPaused) {
+              window.scrollBy({ top: 900, behavior: 'smooth' });
+              window.dispatchEvent(new Event('scroll'));
+            }
+          }, 200);
+        } else {
+          window.scrollBy({ top: 850, behavior: 'smooth' });
+        }
+
+        // Live network waiting status on HUD
+        const statusSpan = document.getElementById('harvest-hud-status');
+        if (statusSpan) {
+          statusSpan.innerHTML = `<span style="color: #fbbf24;">⏳ Waiting for network stream... (${staleCount}/${MAX_STALE_ATTEMPTS})</span> | <strong id="harvest-hud-count">${currentPinCount} pins</strong>`;
+        }
+
+        // Only finish when all 18 attempts have yielded 0 new pins
+        if (staleCount >= MAX_STALE_ATTEMPTS) {
           stopAutoHarvest();
         }
       } else {
         staleCount = 0;
+        window.scrollBy({ top: 850, behavior: 'smooth' });
       }
 
-      lastScrollY = currentScrollY;
-    }, 600);
+      lastScrollY = window.scrollY;
+    }, 700);
   }
 
   function stopAutoHarvest() {
     if (!state.isHarvesting) return;
     state.isHarvesting = false;
+    state.isHarvestPaused = false;
     if (state.harvestInterval) {
       clearInterval(state.harvestInterval);
       state.harvestInterval = null;
     }
+
+    const pauseBtn = document.getElementById('harvest-btn-pause');
+    if (pauseBtn) {
+      pauseBtn.className = 'harvest-btn pause';
+      pauseBtn.innerHTML = '⏸ Pause';
+    }
+
+    const spinner = document.getElementById('harvest-hud-spinner');
+    if (spinner) spinner.classList.remove('paused');
 
     hideHarvestHUD();
     selectAllVisibleSilently();
@@ -718,19 +882,21 @@
       hud.id = 'zumpey-harvest-hud';
       hud.innerHTML = `
         <div class="harvest-header">
-          <div class="harvest-spinner"></div>
+          <div class="harvest-spinner" id="harvest-hud-spinner"></div>
           <div class="harvest-info">
             <span class="harvest-title" id="harvest-hud-title">${escapeHtml(title)}</span>
-            <span class="harvest-stats">Auto-scrolling & fetching: <strong id="harvest-hud-count">0 pins</strong></span>
+            <span class="harvest-stats" id="harvest-hud-status">Auto-scrolling & fetching: <strong id="harvest-hud-count">0 pins</strong></span>
           </div>
         </div>
         <div class="harvest-actions">
-          <button id="harvest-btn-stop" class="harvest-btn primary">⏹ Finish Fetching (<span id="harvest-btn-count">0</span>)</button>
-          <button id="harvest-btn-cancel" class="harvest-btn secondary">✖ Cancel</button>
+          <button id="harvest-btn-pause" class="harvest-btn pause" title="Pause / Resume Auto-Scrolling">⏸ Pause</button>
+          <button id="harvest-btn-stop" class="harvest-btn primary" title="Stop & Keep All Collected Pins">⏹ Stop & Keep (<span id="harvest-btn-count">0</span>)</button>
+          <button id="harvest-btn-cancel" class="harvest-btn secondary" title="Cancel and Clear">✖ Cancel</button>
         </div>
       `;
       document.body.appendChild(hud);
 
+      document.getElementById('harvest-btn-pause').addEventListener('click', togglePauseAutoHarvest);
       document.getElementById('harvest-btn-stop').addEventListener('click', () => {
         stopAutoHarvest();
       });
@@ -742,6 +908,15 @@
 
     const titleElem = document.getElementById('harvest-hud-title');
     if (titleElem) titleElem.textContent = title;
+
+    const pauseBtn = document.getElementById('harvest-btn-pause');
+    if (pauseBtn) {
+      pauseBtn.className = 'harvest-btn pause';
+      pauseBtn.innerHTML = '⏸ Pause';
+    }
+
+    const spinner = document.getElementById('harvest-hud-spinner');
+    if (spinner) spinner.classList.remove('paused');
 
     hud.classList.add('active');
     updateHarvestHUD();
@@ -1011,7 +1186,10 @@
       });
     }
 
-    console.log('[Zumpey.com] Content script fully initialized with Full Board & Account Downloader.');
+    // Restore persistent selections across page refreshes
+    await restoreSavedSelections();
+
+    console.log('[Zumpey.com] Content script fully initialized with Persistent Selections & Robust Scraper.');
   }
 
   // Launch when ready

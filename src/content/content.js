@@ -104,10 +104,47 @@
   }
 
   /**
+   * Synchronize visual badge and selected class on a pin element with state.selectedPins
+   */
+  function syncCardWithSelection(pinElement) {
+    if (!pinElement || !window.PinFlowDOM) return;
+    const pinData = window.PinFlowDOM.extractPinData(pinElement);
+    if (!pinData) return;
+
+    const existing = state.selectedPins.find((p) => {
+      if (!p.data) return false;
+      if (pinData.pinId && p.data.pinId && p.data.pinId === pinData.pinId) return true;
+      if (pinData.originalImageUrl && p.data.originalImageUrl && p.data.originalImageUrl === pinData.originalImageUrl) return true;
+      if (pinData.pinUrl && p.data.pinUrl && p.data.pinUrl === pinData.pinUrl) return true;
+      return false;
+    });
+
+    const orderBadge = pinElement.querySelector('.pinflow-order-badge');
+    if (existing) {
+      existing.element = pinElement;
+      pinElement.classList.add('pinflow-selected');
+      if (orderBadge) {
+        orderBadge.classList.add('active');
+        orderBadge.textContent = `#${existing.index}`;
+      }
+    } else {
+      pinElement.classList.remove('pinflow-selected');
+      if (orderBadge) {
+        orderBadge.classList.remove('active');
+        orderBadge.textContent = '+';
+      }
+    }
+  }
+
+  /**
    * Setup interactive overlays on newly detected pin cards
    */
   function processPinCard(pinElement) {
-    if (!pinElement || pinElement.dataset.pinflowAttached) return;
+    if (!pinElement) return;
+    if (pinElement.dataset.pinflowAttached) {
+      syncCardWithSelection(pinElement);
+      return;
+    }
     pinElement.dataset.pinflowAttached = 'true';
     pinElement.classList.add('pinflow-pin-container');
 
@@ -166,30 +203,15 @@
     actionsWrapper.appendChild(copyLinkBtn);
     pinElement.appendChild(actionsWrapper);
 
-    // 3. Check if pin was previously saved in state (persistent selection)
-    if (pinData) {
-      const existing = state.selectedPins.find((p) => {
-        if (!p.data) return false;
-        if (pinData.pinId && p.data.pinId && p.data.pinId === pinData.pinId) return true;
-        if (pinData.originalImageUrl && p.data.originalImageUrl && p.data.originalImageUrl === pinData.originalImageUrl) return true;
-        if (pinData.pinUrl && p.data.pinUrl && p.data.pinUrl === pinData.pinUrl) return true;
-        return false;
-      });
-
-      if (existing) {
-        existing.element = pinElement;
-        pinElement.classList.add('pinflow-selected');
-        orderBadge.classList.add('active');
-        orderBadge.textContent = `#${existing.index}`;
-      }
-    }
-
-    // 4. Selection Event Listener on Badge
+    // 3. Selection Event Listener on Badge
     badgeWrapper.addEventListener('click', (e) => {
       e.stopPropagation();
       e.preventDefault();
       togglePinSelection(pinElement);
     });
+
+    // 4. Synchronize selection state
+    syncCardWithSelection(pinElement);
   }
 
   /**
@@ -1175,7 +1197,10 @@
     await loadSettings();
     createFloatingBar();
 
-    // Start Pinterest DOM Observation
+    // 1. Restore persistent selections across page refreshes FIRST
+    await restoreSavedSelections();
+
+    // 2. Start Pinterest DOM Observation
     if (window.PinFlowDOM) {
       window.PinFlowDOM.initObserver((newCards) => {
         newCards.forEach((card) => processPinCard(card));
@@ -1185,9 +1210,6 @@
         }
       });
     }
-
-    // Restore persistent selections across page refreshes
-    await restoreSavedSelections();
 
     console.log('[Zumpey.com] Content script fully initialized with Persistent Selections & Robust Scraper.');
   }
